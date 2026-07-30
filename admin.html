@@ -517,7 +517,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.3.0</p>
+    <p class="footer-version">Fundkiste v1.4.0</p>
   </div>
 </div>
 
@@ -561,7 +561,7 @@
 
     <div id="grid" class="grid"></div>
     <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.3.0</p>
+    <p class="footer-version">Fundkiste v1.4.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -656,6 +656,7 @@
     <div class="admin-tabs">
       <button data-admintab="usuarios" class="active">Usuarios</button>
       <button data-admintab="sedes">Sedes</button>
+      <button data-admintab="acceso">Acceso público</button>
     </div>
 
     <div id="adminUsuarios">
@@ -710,6 +711,22 @@
         <button class="btn primary" id="btnAddSede" style="flex:0 0 auto;padding:9px 16px;">Agregar</button>
       </div>
       <div id="sedesList"></div>
+    </div>
+
+    <div id="adminAcceso" style="display:none;">
+      <div class="info-note">
+        Esta clave la piden a padres/estudiantes para entrar a la vitrina pública (<code>index.html</code>). Es una barrera simple contra visitas casuales, no una protección técnica real — no la uses para datos sensibles.
+      </div>
+      <div class="error-note" id="claveConfigError"></div>
+      <div class="field">
+        <label>Clave de acceso actual</label>
+        <input type="text" id="inputClaveActual" disabled placeholder="Cargando...">
+      </div>
+      <div class="field">
+        <label>Nueva clave</label>
+        <input type="text" id="inputClaveNueva" placeholder="Escribe la nueva clave de acceso">
+      </div>
+      <button class="btn primary" id="btnGuardarClave" style="width:100%;">Guardar nueva clave</button>
     </div>
 
     <div class="actions">
@@ -1232,8 +1249,47 @@
       const tab = btn.dataset.admintab;
       $('#adminUsuarios').style.display = tab === 'usuarios' ? 'block' : 'none';
       $('#adminSedes').style.display = tab === 'sedes' ? 'block' : 'none';
+      $('#adminAcceso').style.display = tab === 'acceso' ? 'block' : 'none';
       if (tab === 'sedes') renderSedesPanel();
+      if (tab === 'acceso') loadClaveAcceso();
     });
+  });
+
+  async function loadClaveAcceso() {
+    const { data, error } = await sb.from('configuracion').select('clave_acceso').eq('id', 1).single();
+    const errBox = $('#claveConfigError');
+    errBox.style.display = 'none';
+    if (error) {
+      $('#inputClaveActual').value = '';
+      $('#inputClaveActual').placeholder = 'No se pudo cargar';
+      errBox.textContent = 'Error: ' + error.message;
+      errBox.style.display = 'block';
+      return;
+    }
+    $('#inputClaveActual').value = data.clave_acceso;
+  }
+
+  $('#btnGuardarClave').addEventListener('click', async () => {
+    const nueva = $('#inputClaveNueva').value.trim();
+    const errBox = $('#claveConfigError');
+    errBox.style.display = 'none';
+    if (!nueva) { toast('Escribe la nueva clave'); return; }
+
+    const btn = $('#btnGuardarClave');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    const { error } = await sb.from('configuracion').update({ clave_acceso: nueva }).eq('id', 1);
+    btn.disabled = false;
+    btn.textContent = 'Guardar nueva clave';
+
+    if (error) {
+      errBox.textContent = 'Error: ' + error.message;
+      errBox.style.display = 'block';
+      return;
+    }
+    $('#inputClaveNueva').value = '';
+    toast('Clave de acceso actualizada');
+    loadClaveAcceso();
   });
 
   async function loadUsersPanel() {

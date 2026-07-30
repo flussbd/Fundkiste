@@ -260,6 +260,47 @@ $$;
 
 grant execute on function public.sedes_publicas() to anon, authenticated;
 
+-- ---------------------------------------------------------
+-- 6b. Clave de acceso a la vitrina pública
+-- ---------------------------------------------------------
+-- Nota de seguridad: esto es una barrera simple para desalentar
+-- visitas casuales de internet, NO una protección técnica real
+-- (la app es un archivo estático; alguien con conocimientos
+-- técnicos podría revisar el código o llamar directo a la función
+-- de verificación). No la uses para datos realmente sensibles.
+create table if not exists configuracion (
+  id int primary key default 1,
+  clave_acceso text not null default 'cambiar-esta-clave',
+  constraint configuracion_solo_una_fila check (id = 1)
+);
+
+insert into configuracion (id) values (1) on conflict (id) do nothing;
+
+alter table configuracion enable row level security;
+
+-- Solo el administrador total puede ver/cambiar la clave desde el panel.
+drop policy if exists "configuracion_admin_total" on configuracion;
+create policy "configuracion_admin_total"
+  on configuracion for all
+  using (get_my_role() = 'admin_total')
+  with check (get_my_role() = 'admin_total');
+
+-- Función pública que compara el intento sin exponer la clave real
+-- (así nadie puede simplemente "leer" la clave llamando a una función).
+create or replace function public.verificar_clave_publica(intento text)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from configuracion where id = 1 and clave_acceso = intento
+  );
+$$;
+
+grant execute on function public.verificar_clave_publica(text) to anon, authenticated;
+
 -- =========================================================
 -- 7. Bootstrap: crear el primer administrador total
 -- =========================================================

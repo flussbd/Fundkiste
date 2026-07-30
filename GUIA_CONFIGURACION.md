@@ -2,7 +2,7 @@
 
 ## Qué archivo es cada cosa
 
-- **`index.html`** — página principal, pública, sin login. Pide elegir la sede/colegio y muestra los artículos disponibles. Es la que compartes con padres y estudiantes.
+- **`index.html`** — página principal, pública, sin login (pero pide una clave de acceso compartida). Pide elegir la sede/colegio y muestra los artículos disponibles. Es la que compartes con padres y estudiantes.
 - **`admin.html`** — app de gestión para el personal (requiere iniciar sesión). Desde aquí se registran artículos, se marcan retiros y se administran usuarios/sedes. Hay un link "Acceso para administradores" en `index.html` que lleva aquí.
 - **`vitrina.html`** — ya no se usa directamente, solo redirige a `index.html` (por si alguien guardó ese link de una versión anterior).
 - **`setup.sql`** — script que crea toda la base de datos en Supabase. No se sube a GitHub, solo se pega en el SQL Editor de Supabase.
@@ -70,6 +70,17 @@ Nota: la clave publishable está diseñada por Supabase para ir incluida en el c
 
 Estas mismas sedes aparecerán como botones para elegir en la página pública `index.html`.
 
+## Parte 5b: Cambiar la clave de acceso a la vitrina pública
+
+Al ejecutar `setup.sql` se crea una clave por defecto (`cambiar-esta-clave`) que hay que cambiar antes de compartir el link con las familias:
+
+1. Entra a `admin.html` con tu cuenta de administrador total.
+2. Botón **👥 Usuarios** → pestaña **Acceso público**.
+3. Ahí ves la clave actual y puedes escribir una nueva → **Guardar nueva clave**.
+4. Comparte esa clave con las familias por el medio que uses habitualmente (circular, agenda, etc.) junto con el link de `index.html`.
+
+Importante: esto es una barrera simple para desalentar que cualquiera en internet entre a curiosear, **no es una protección técnica real** — como la app es un archivo estático, alguien con conocimientos técnicos podría revisar el código o llamar directo a la función de verificación. No la uses pensando que protege datos realmente sensibles; para eso existen los roles con login real de `admin.html`.
+
 ## Parte 6: Activar la creación de usuarios desde la app (opcional pero recomendado)
 
 Por defecto, crear cuentas nuevas requiere entrar manualmente a Supabase (**Authentication → Users → Add user**). Si quieres poder crear cuentas directamente desde el panel "👥 Usuarios" de `admin.html`, despliega una función que vive en Supabase (nunca en un archivo público) y que es la única con permiso para crear cuentas de forma segura.
@@ -97,7 +108,8 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 ## ¿Cómo se usa?
 
 **`index.html` (público, sin login):**
-- Al entrar, pide elegir la sede — la recuerda para la próxima visita (hay un botón "Cambiar sede" en el encabezado).
+- Al entrar, primero pide la clave de acceso (una sola vez, la recuerda en el navegador).
+- Luego pide elegir la sede — también la recuerda para la próxima visita (hay un botón "Cambiar sede" en el encabezado).
 - Muestra los artículos disponibles de esa sede: foto, tipo, color, talla, si tiene nombre, lugar y fecha en que se encontró.
 - No muestra artículos ya retirados, ni quién los registró o retiró.
 - No permite registrar ni retirar artículos — solo consultar.

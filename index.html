@@ -226,8 +226,23 @@
 </head>
 <body>
 
+<!-- ============ PANTALLA: CLAVE DE ACCESO ============ -->
+<div class="login-wrap" id="claveWrap">
+  <div class="login-card">
+    <div class="mark">👕</div>
+    <h1>Fundkiste</h1>
+    <p class="sub">Objetos perdidos del colegio. Ingresa la clave de acceso que te compartió el colegio.</p>
+    <div class="error-note" id="claveError" style="display:none;color:#b0552c;background:#fbe9df;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:12px;"></div>
+    <input type="password" id="inputClaveAcceso" placeholder="Clave de acceso" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;margin-bottom:12px;">
+    <button class="sede-btn" id="btnVerificarClave" style="text-align:center;background:var(--accent);color:#fff;border-color:var(--accent);">Entrar</button>
+    <div class="admin-link">
+      <a href="admin.html">Acceso para administradores →</a>
+    </div>
+  </div>
+</div>
+
 <!-- ============ PANTALLA: ELEGIR SEDE ============ -->
-<div class="login-wrap" id="sedeWrap">
+<div class="login-wrap" id="sedeWrap" style="display:none;">
   <div class="login-card">
     <div class="mark">👕</div>
     <h1>Fundkiste</h1>
@@ -274,7 +289,7 @@
 
     <div id="grid" class="grid"></div>
     <div id="emptyState" class="empty" style="display:none;">No hay artículos disponibles que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.3.0 · Vista pública</p>
+    <p class="footer-version">Fundkiste v1.4.0 · Vista pública</p>
   </main>
 </div>
 
@@ -292,6 +307,7 @@
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const SEDE_STORAGE_KEY = 'fk_sede_elegida';
+  const CLAVE_STORAGE_KEY = 'fk_clave_ok';
 
   let sedes = [];
   let items = [];
@@ -307,6 +323,39 @@
     if (!d) return '—';
     const dt = new Date(d + 'T00:00:00');
     return dt.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  async function verificarClave() {
+    const intento = $('#inputClaveAcceso').value;
+    const errBox = $('#claveError');
+    errBox.style.display = 'none';
+    if (!intento) {
+      errBox.textContent = 'Ingresa la clave de acceso.';
+      errBox.style.display = 'block';
+      return;
+    }
+    const btn = $('#btnVerificarClave');
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+    const { data, error } = await sb.rpc('verificar_clave_publica', { intento });
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    if (error || !data) {
+      errBox.textContent = 'Clave incorrecta. Consulta con el colegio si no la tienes.';
+      errBox.style.display = 'block';
+      return;
+    }
+    localStorage.setItem(CLAVE_STORAGE_KEY, 'true');
+    $('#claveWrap').style.display = 'none';
+    $('#sedeWrap').style.display = 'flex';
+    boot();
+  }
+
+  $('#btnVerificarClave').addEventListener('click', verificarClave);
+  $('#inputClaveAcceso').addEventListener('keydown', (e) => { if (e.key === 'Enter') verificarClave(); });
+
+  function claveYaVerificada() {
+    return localStorage.getItem(CLAVE_STORAGE_KEY) === 'true';
   }
 
   async function boot() {
@@ -443,7 +492,11 @@
     if (e.target === $('#overlayDetail')) $('#overlayDetail').classList.remove('show');
   });
 
-  boot();
+  if (claveYaVerificada()) {
+    $('#claveWrap').style.display = 'none';
+    $('#sedeWrap').style.display = 'flex';
+    boot();
+  }
 </script>
 </body>
 </html>
