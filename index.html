@@ -664,7 +664,7 @@
   const SUPABASE_URL = 'https://whdmgrnbakkixdrqrurp.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_DcwRpMcYcBoEVsokJN82hA_bxR-beQa';
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ---------- Estado global ----------
   let miPerfil = null;   // { id, email, nombre, rol, sede_id }
@@ -718,7 +718,7 @@
     const btn = $('#btnLogin');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Ingresando...';
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await sb.auth.signInWithPassword({ email, password });
     btn.disabled = false;
     btn.textContent = 'Iniciar sesión';
     if (error) {
@@ -730,7 +730,7 @@
   }
 
   $('#btnLogout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    await sb.auth.signOut();
     miPerfil = null;
     $('#appMain').style.display = 'none';
     $('#loginWrap').style.display = 'flex';
@@ -738,11 +738,11 @@
   });
 
   async function afterLogin() {
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData } = await sb.auth.getUser();
     const user = userData?.user;
     if (!user) return;
 
-    const { data: perfil, error: perfilErr } = await supabase
+    const { data: perfil, error: perfilErr } = await sb
       .from('perfiles')
       .select('*')
       .eq('id', user.id)
@@ -751,7 +751,7 @@
     if (perfilErr || !perfil) {
       $('#loginError').textContent = 'No se encontró un perfil para esta cuenta. Pide a un administrador que revise tu acceso.';
       $('#loginError').style.display = 'block';
-      await supabase.auth.signOut();
+      await sb.auth.signOut();
       return;
     }
 
@@ -774,7 +774,7 @@
 
   // Si ya había una sesión activa (recarga de página), continuar directo.
   async function checkExistingSession() {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await sb.auth.getSession();
     if (data?.session) {
       await afterLogin();
     }
@@ -784,7 +784,7 @@
   // SEDES
   // =========================================================
   async function loadSedes() {
-    const { data, error } = await supabase.from('sedes').select('*').order('nombre');
+    const { data, error } = await sb.from('sedes').select('*').order('nombre');
     if (error) { console.error(error); return; }
     sedes = data || [];
     const selectFilter = $('#filterSede');
@@ -817,7 +817,7 @@
   // ARTÍCULOS: carga y render
   // =========================================================
   async function loadItems() {
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('articulos')
       .select('*')
       .order('created_at', { ascending: false });
@@ -945,9 +945,9 @@
       let fotoUrl = null;
       if (currentPhotoFile) {
         const path = `${Date.now()}_${currentPhotoFile.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
-        const { error: upErr } = await supabase.storage.from('fotos').upload(path, currentPhotoFile);
+        const { error: upErr } = await sb.storage.from('fotos').upload(path, currentPhotoFile);
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('fotos').getPublicUrl(path);
+        const { data: pub } = sb.storage.from('fotos').getPublicUrl(path);
         fotoUrl = pub.publicUrl;
       }
 
@@ -967,7 +967,7 @@
         estado: 'disponible'
       };
 
-      const { error } = await supabase.from('articulos').insert(record);
+      const { error } = await sb.from('articulos').insert(record);
       if (error) throw error;
 
       toast('Artículo registrado');
@@ -1056,7 +1056,7 @@
     btn.innerHTML = '<span class="spinner"></span> Guardando...';
 
     try {
-      const { error } = await supabase
+      const { error } = await sb
         .from('articulos')
         .update({
           estado: 'retirado',
@@ -1099,7 +1099,7 @@
   });
 
   async function loadUsersPanel() {
-    const { data, error } = await supabase.from('perfiles').select('*').order('email');
+    const { data, error } = await sb.from('perfiles').select('*').order('email');
     if (error) { toast('Error: ' + error.message); return; }
     const list = $('#usersList');
     list.innerHTML = '';
@@ -1126,7 +1126,7 @@
         const nombre = row.querySelector('.ur-nombre').value.trim();
         const rol = row.querySelector('.ur-rol').value;
         const sedeVal = row.querySelector('.ur-sede').value || null;
-        const { error: updErr } = await supabase.from('perfiles').update({
+        const { error: updErr } = await sb.from('perfiles').update({
           nombre: nombre || null,
           rol,
           sede_id: rol === 'admin_total' ? null : sedeVal
@@ -1152,7 +1152,7 @@
   $('#btnAddSede').addEventListener('click', async () => {
     const nombre = $('#inputNuevaSede').value.trim();
     if (!nombre) { toast('Escribe un nombre de sede'); return; }
-    const { error } = await supabase.from('sedes').insert({ nombre });
+    const { error } = await sb.from('sedes').insert({ nombre });
     if (error) { toast('Error: ' + error.message); return; }
     $('#inputNuevaSede').value = '';
     await loadSedes();
