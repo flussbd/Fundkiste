@@ -112,8 +112,8 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 ## ¿Cómo se usa?
 
 **`index.html` (público, sin login):**
-- Al entrar, primero pide la clave de acceso (una sola vez, la recuerda en el navegador).
-- Luego pide elegir la sede — también la recuerda para la próxima visita (hay un botón "Cambiar sede" en el encabezado).
+- Al entrar, primero pide elegir la sede/colegio — la recuerda para la próxima visita (hay un botón "Cambiar sede" en el encabezado).
+- Luego pide la clave de acceso (una sola vez por sede, la recuerda en el navegador).
 - Muestra los artículos disponibles de esa sede: foto, tipo, color, talla, si tiene nombre, lugar y fecha en que se encontró.
 - No muestra artículos ya retirados, ni quién los registró o retiró.
 - No permite registrar ni retirar artículos — solo consultar.
@@ -122,6 +122,7 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 - **Registrar un artículo**: botón `+` (solo administradores). Foto opcional, categoría, tipo, color, talla, si tiene nombre bordado, lugar y fecha. Un administrador local registra directo en su sede; un administrador total elige la sede.
 - **Buscar/filtrar**: búsqueda por texto, filtro por categoría, filtro por sede (si el usuario ve más de una), pestañas Disponibles / Retirados / Todos.
 - **Marcar como retirado**: en el detalle de un artículo disponible, los administradores registran nombre, curso y fecha de quien lo retira. Los usuarios de solo lectura ven el detalle pero no este formulario.
+- **Eliminar un artículo**: en el detalle de cualquier artículo, botón "Eliminar artículo" (pide confirmación). Un administrador total puede eliminar de cualquier sede; un administrador local solo de su propia sede. Los usuarios de solo lectura no ven este botón. Si ya tenías la base de datos creada de antes, debes volver a ejecutar `setup.sql` para que el administrador local quede habilitado para eliminar (antes solo lo permitía admin_total).
 - **Mi cuenta**: cualquier usuario logueado (sin importar su rol) puede cambiar su propio nombre y su contraseña desde el botón "⚙ Mi cuenta" en el encabezado. No puede cambiar su propio rol ni sede desde ahí — eso lo sigue controlando solo el administrador total (o local, para la clave de acceso pública).
 
 ## Notas importantes

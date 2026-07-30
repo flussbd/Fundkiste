@@ -181,11 +181,16 @@ create policy "articulos_update"
     or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
   );
 
--- Artículos: eliminar (solo admin_total, por seguridad)
+-- Artículos: eliminar
+-- - admin_total: cualquier sede
+-- - admin_local: solo artículos de su propia sede
 drop policy if exists "articulos_delete" on articulos;
 create policy "articulos_delete"
   on articulos for delete
-  using (get_my_role() = 'admin_total');
+  using (
+    get_my_role() = 'admin_total'
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+  );
 
 -- ---------------------------------------------------------
 -- 5. Storage: bucket de fotos
