@@ -84,6 +84,21 @@ Con la función desplegada, para cada persona nueva:
 
 Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmente en Supabase (**Authentication → Users → Add user**) y luego asignarles el rol desde la lista "Usuarios existentes" en el mismo panel.
 
+## Parte 8: Vitrina pública (para padres y estudiantes, sin necesidad de cuenta)
+
+Además de la app con login (`index.html`), hay una página separada, `vitrina.html`, que cualquier persona puede abrir sin iniciar sesión para ver qué artículos están disponibles — pensada para padres o estudiantes que solo quieren revisar si algo suyo está en objetos perdidos.
+
+Por diseño, esta vista pública:
+- Solo muestra artículos con estado **disponible** (los retirados no aparecen).
+- Muestra foto, categoría, tipo, color, talla, sede, lugar y fecha en que se encontró, y el nombre bordado si tiene (para ayudar a identificar el dueño).
+- **No muestra** quién registró el artículo, ni quién lo retiró, ni su curso — esa información queda solo para el personal con cuenta.
+
+Pasos para activarla:
+
+1. Vuelve a correr el archivo `setup.sql` actualizado en el **SQL Editor** de Supabase (agrega la función `articulos_publicos`, que es la que permite esta vista sin exponer datos sensibles). Si ya lo corriste antes, no hay problema en volver a ejecutarlo completo.
+2. Sube `vitrina.html` a tu repositorio de GitHub junto al `index.html` (mismo lugar, mismo repositorio).
+3. Compártela con las familias como `https://tu-usuario.github.io/fundkiste/vitrina.html`. También hay un link a ella desde la pantalla de login de la app principal.
+
 ## ¿Cómo se usa?
 
 - **Registrar un artículo**: botón `+` abajo a la derecha (solo visible para administradores). Se puede tomar foto con la cámara o subir una desde la galería, y llenar categoría, tipo, color, talla, si tiene nombre bordado, dónde se encontró y la fecha. Un administrador local registra directo en su sede; un administrador total elige la sede.

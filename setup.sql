@@ -208,8 +208,46 @@ create policy "fotos_subida_autorizada"
     and get_my_role() in ('admin_total','admin_local')
   );
 
+-- ---------------------------------------------------------
+-- 6. Vitrina pública (sin login)
+-- ---------------------------------------------------------
+-- Función segura para que cualquier persona (sin cuenta) pueda ver
+-- los artículos disponibles. Solo expone columnas no sensibles:
+-- NO incluye quién retiró un artículo, su curso, ni quién lo registró,
+-- y solo muestra artículos con estado 'disponible' (los retirados no
+-- se listan públicamente).
+create or replace function public.articulos_publicos()
+returns table (
+  id uuid,
+  sede_nombre text,
+  categoria text,
+  tipo text,
+  color text,
+  talla text,
+  tiene_nombre boolean,
+  nombre_bordado text,
+  foto_url text,
+  lugar_encontrado text,
+  fecha_encontrado date
+)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select
+    a.id, s.nombre as sede_nombre, a.categoria, a.tipo, a.color, a.talla,
+    a.tiene_nombre, a.nombre_bordado, a.foto_url, a.lugar_encontrado, a.fecha_encontrado
+  from articulos a
+  join sedes s on s.id = a.sede_id
+  where a.estado = 'disponible'
+  order by a.created_at desc;
+$$;
+
+grant execute on function public.articulos_publicos() to anon, authenticated;
+
 -- =========================================================
--- 6. Bootstrap: crear el primer administrador total
+-- 7. Bootstrap: crear el primer administrador total
 -- =========================================================
 -- Después de crear tu primer usuario en
 -- Authentication > Users > Add user (con su correo y contraseña),
