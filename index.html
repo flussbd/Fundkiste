@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundkiste - Colegio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #f4f2ee;
+    --panel: #ffffff;
+    --ink: #24211d;
+    --ink-soft: #6b6560;
+    --line: #e4dfd6;
+    --accent: #8a5a3b;
+    --accent-dark: #6e4529;
+    --accent-soft: #f0e2d4;
+    --ok: #3f7a4f;
+    --ok-soft: #e2efe4;
+    --warn: #b0552c;
+    --warn-soft: #fbe9df;
+    --info: #3c6e9e;
+    --info-soft: #e2ecf5;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(36,33,29,0.06), 0 6px 20px rgba(36,33,29,0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand .mark {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .brand h1 {
+    font-size: 16px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .brand small {
+    display: block;
+    color: var(--ink-soft);
+    font-size: 11.5px;
+    margin-top: 1px;
+  }
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .role-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--info-soft);
+    color: var(--info);
+  }
+  .role-badge.admin_total { background: var(--accent-soft); color: var(--accent-dark); }
+  .role-badge.admin_local { background: var(--ok-soft); color: var(--ok); }
+  .user-chip button, .link-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .icon-btn {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 18px 16px 100px;
+  }
+  #appMain { display: none; }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .toolbar input[type="search"], .toolbar select {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .toolbar input[type="search"] { flex: 1; min-width: 160px; }
+  .sede-lock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .tabs button {
+    border: none;
+    background: none;
+    padding: 7px 13px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .tabs button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.12s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card .thumb {
+    aspect-ratio: 4/3;
+    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c7ab8f' stroke-width='1.4'%3E%3Cpath d='M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/34px no-repeat;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .card .badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+  .card .badge.retirado {
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+  .card .badge.sede-tag {
+    top: auto; bottom: 8px; left: 8px;
+    background: rgba(255,255,255,0.9);
+    color: var(--ink);
+  }
+  .card .info { padding: 10px 12px 12px; }
+  .card .info .tipo { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .card .info .meta { font-size: 12px; color: var(--ink-soft); }
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+  }
+  .fab {
+    position: fixed;
+    bottom: 22px; right: 22px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-size: 26px;
+    box-shadow: 0 6px 20px rgba(138,90,59,0.45);
+    cursor: pointer;
+    z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fab:active { transform: scale(0.95); }
+
+  /* Modal / overlay */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(36,33,29,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  @media (min-width: 640px) {
+    .overlay { align-items: center; }
+  }
+  .sheet {
+    background: var(--panel);
+    width: 100%;
+    max-width: 520px;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 20px 24px;
+  }
+  .sheet.wide { max-width: 700px; }
+  @media (min-width: 640px) {
+    .sheet { border-radius: 18px; }
+  }
+  .sheet h2 {
+    margin: 0 0 14px;
+    font-size: 17px;
+  }
+  .field { margin-bottom: 13px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  .field input[type="text"], .field input[type="email"], .field input[type="password"],
+  .field input[type="date"], .field select, .field textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    font-size: 14px;
+    color: var(--ink);
+    background: #fff;
+    font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+  .checkline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    margin-bottom: 10px;
+  }
+  .photo-input {
+    border: 1.5px dashed var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .photo-input img {
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 8px;
+    display: block;
+    margin: 0 auto 8px;
+  }
+  .photo-input input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:disabled { opacity: 0.55; cursor: default; }
+  .btn.ghost { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+  .btn.danger-outline { background: #fff; color: var(--warn); border: 1px solid var(--warn); }
+
+  .detail-photo {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    background: var(--accent-soft);
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 14px;
+    font-size: 13.5px;
+    margin-bottom: 14px;
+  }
+  .detail-grid div span { display: block; color: var(--ink-soft); font-size: 11px; margin-bottom: 2px; }
+  .divider { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+  .status-line {
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--ok-soft);
+    color: var(--ok);
+    margin-bottom: 14px;
+  }
+  .status-line.retirado { background: var(--warn-soft); color: var(--warn); }
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; }
+  .config-note, .info-note {
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+  }
+  .error-note {
+    font-size: 12.5px;
+    color: var(--warn);
+    background: var(--warn-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.7s linear infinite;
+    vertical-align: -3px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .admin-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .admin-tabs button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .admin-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .user-row {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .user-row .email { font-size: 13px; font-weight: 600; margin-bottom: 6px; word-break: break-all; }
+  .user-row .fields-inline { display: flex; gap: 6px; flex-wrap: wrap; }
+  .user-row .fields-inline > * { flex: 1; min-width: 90px; }
+  .user-row select, .user-row input {
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    font-size: 12.5px;
+  }
+  .user-row .save-row {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .sede-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+  }
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 24px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .login-card .mark {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+  .login-card h1 { font-size: 19px; margin: 0 0 4px; }
+  .login-card p.sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
+</style>
+</head>
+<body>
+
+<!-- ============ PANTALLA DE LOGIN ============ -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="mark">👕</div>
+    <h1>Fundkiste</h1>
+    <p class="sub">Inicia sesión para ver y registrar objetos perdidos del colegio.</p>
+    <div class="error-note" id="loginError"></div>
+    <div class="field">
+      <label>Correo</label>
+      <input type="email" id="inputEmail" placeholder="tu_correo@colegio.cl" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="inputPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn primary" id="btnLogin" style="width:100%;">Iniciar sesión</button>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:14px;">
+      ¿No tienes cuenta? Pídele a un administrador que la cree.
+    </p>
+  </div>
+</div>
+
+<!-- ============ APP PRINCIPAL ============ -->
+<div id="appMain">
+  <header>
+    <div class="brand">
+      <div class="mark">👕</div>
+      <div>
+        <h1>Fundkiste</h1>
+        <small id="subtitleText">Objetos perdidos del colegio</small>
+      </div>
+    </div>
+    <div class="user-chip">
+      <span id="userLabel"></span>
+      <span class="role-badge" id="roleBadge"></span>
+      <button class="icon-btn" id="btnAdminPanel" style="display:none;">👥 Usuarios</button>
+      <button class="icon-btn" id="btnLogout">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <input type="search" id="searchInput" placeholder="Buscar por tipo, color o nombre bordado...">
+      <select id="filterCategoria">
+        <option value="">Todas las categorías</option>
+        <option value="Ropa">Ropa</option>
+        <option value="Útiles escolares">Útiles escolares</option>
+        <option value="Otro">Otro</option>
+      </select>
+      <select id="filterSede" style="display:none;">
+        <option value="">Todas las sedes</option>
+      </select>
+      <span class="sede-lock" id="sedeLock" style="display:none;"></span>
+      <div class="tabs">
+        <button data-tab="disponible" class="active">Disponibles</button>
+        <button data-tab="retirado">Retirados</button>
+        <button data-tab="todos">Todos</button>
+      </div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
+  </main>
+
+  <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
+</div>
+
+<!-- Overlay: nuevo artículo -->
+<div class="overlay" id="overlayAdd">
+  <div class="sheet">
+    <h2>Registrar artículo encontrado</h2>
+    <label class="photo-input" id="photoInputWrap">
+      <span id="photoPlaceholder">📷 Tomar o subir foto (opcional)</span>
+      <img id="photoPreview" style="display:none;">
+      <input type="file" id="inputPhoto" accept="image/*" capture="environment">
+    </label>
+
+    <div class="field" id="wrapSedeForm">
+      <label>Sede</label>
+      <select id="inputSede"></select>
+    </div>
+
+    <div class="field">
+      <label>Categoría</label>
+      <select id="inputCategoria">
+        <option value="Ropa">Ropa</option>
+        <option value="Útiles escolares">Útiles escolares</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Tipo de artículo</label>
+        <input type="text" id="inputTipo" placeholder="Ej: Polerón, estuche, botella" list="tipoSugerencias">
+        <datalist id="tipoSugerencias">
+          <option value="Polerón"></option>
+          <option value="Chaqueta"></option>
+          <option value="Polera"></option>
+          <option value="Sweater"></option>
+          <option value="Buzo deportivo"></option>
+          <option value="Estuche"></option>
+          <option value="Botella"></option>
+          <option value="Lentes"></option>
+          <option value="Mochila"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <input type="text" id="inputColor" placeholder="Ej: Azul marino">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Talla (si aplica)</label>
+        <input type="text" id="inputTalla" placeholder="Ej: 10, M, L">
+      </div>
+      <div class="field">
+        <label>Fecha en que se encontró</label>
+        <input type="date" id="inputFechaEncontrado">
+      </div>
+    </div>
+    <div class="checkline">
+      <input type="checkbox" id="inputTieneNombre">
+      <label for="inputTieneNombre" style="margin:0;">¿Tiene nombre escrito/bordado?</label>
+    </div>
+    <div class="field" id="wrapNombreBordado" style="display:none;">
+      <label>Nombre que aparece en el artículo</label>
+      <input type="text" id="inputNombreBordado" placeholder="Ej: Juan Soto">
+    </div>
+    <div class="field">
+      <label>Lugar donde se encontró</label>
+      <input type="text" id="inputLugar" placeholder="Ej: Patio central, gimnasio">
+    </div>
+    <div class="field">
+      <label>Detalles adicionales (opcional)</label>
+      <textarea id="inputDescripcion" placeholder="Cualquier detalle que ayude a identificarlo"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="btnCancelAdd">Cancelar</button>
+      <button class="btn primary" id="btnSaveAdd">Guardar artículo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay: detalle -->
+<div class="overlay" id="overlayDetail">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- Overlay: panel de administración (solo admin_total) -->
+<div class="overlay" id="overlayAdmin">
+  <div class="sheet wide">
+    <h2>Administrar usuarios y sedes</h2>
+    <div class="admin-tabs">
+      <button data-admintab="usuarios" class="active">Usuarios</button>
+      <button data-admintab="sedes">Sedes</button>
+    </div>
+
+    <div id="adminUsuarios">
+      <div class="info-note">
+        Para crear una cuenta nueva: Supabase &gt; Authentication &gt; Users &gt; Add user (correo y contraseña). Aparecerá aquí automáticamente como "viewer" sin sede — asígnale el rol correcto.
+      </div>
+      <button class="icon-btn" id="btnReloadUsers" style="margin-bottom:10px;">🔄 Recargar lista</button>
+      <div id="usersList"></div>
+    </div>
+
+    <div id="adminSedes" style="display:none;">
+      <div class="row2" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;">
+          <input type="text" id="inputNuevaSede" placeholder="Nombre de la nueva sede">
+        </div>
+        <button class="btn primary" id="btnAddSede" style="flex:0 0 auto;padding:9px 16px;">Agregar</button>
+      </div>
+      <div id="sedesList"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn ghost" id="btnCloseAdmin">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // =========================================================
+  // CONFIGURA AQUÍ tu proyecto Supabase antes de publicar
+  // (ver GUIA_CONFIGURACION.md). El "anon key" está diseñado
+  // para ser público en el frontend; la seguridad real la dan
+  // las políticas RLS configuradas en setup.sql.
+  // =========================================================
+  const SUPABASE_URL = 'https://whdmgrnbakkixdrqrurp.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_DcwRpMcYcBoEVsokJN82hA_bxR-beQa';
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------- Estado global ----------
+  let miPerfil = null;   // { id, email, nombre, rol, sede_id }
+  let sedes = [];
+  let items = [];
+  let currentTab = 'disponible';
+  let currentPhotoFile = null;
+
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function showOverlay(id) { $(id).classList.add('show'); }
+  function hideOverlay(id) { $(id).classList.remove('show'); }
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+  function formatDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  function sedeName(id) {
+    const s = sedes.find(s => s.id === id);
+    return s ? s.nombre : '—';
+  }
+
+  // =========================================================
+  // LOGIN
+  // =========================================================
+  $('#btnLogin').addEventListener('click', doLogin);
+  $('#inputPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  async function doLogin() {
+    const email = $('#inputEmail').value.trim();
+    const password = $('#inputPassword').value;
+    const errBox = $('#loginError');
+    errBox.style.display = 'none';
+    if (!email || !password) {
+      errBox.textContent = 'Completa correo y contraseña.';
+      errBox.style.display = 'block';
+      return;
+    }
+    const btn = $('#btnLogin');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Ingresando...';
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    btn.disabled = false;
+    btn.textContent = 'Iniciar sesión';
+    if (error) {
+      errBox.textContent = 'No pudimos iniciar sesión: ' + error.message;
+      errBox.style.display = 'block';
+      return;
+    }
+    await afterLogin();
+  }
+
+  $('#btnLogout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    miPerfil = null;
+    $('#appMain').style.display = 'none';
+    $('#loginWrap').style.display = 'flex';
+    $('#inputPassword').value = '';
+  });
+
+  async function afterLogin() {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (!user) return;
+
+    const { data: perfil, error: perfilErr } = await supabase
+      .from('perfiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (perfilErr || !perfil) {
+      $('#loginError').textContent = 'No se encontró un perfil para esta cuenta. Pide a un administrador que revise tu acceso.';
+      $('#loginError').style.display = 'block';
+      await supabase.auth.signOut();
+      return;
+    }
+
+    miPerfil = perfil;
+    $('#loginWrap').style.display = 'none';
+    $('#appMain').style.display = 'block';
+
+    $('#userLabel').textContent = `👤 ${miPerfil.nombre || miPerfil.email}`;
+    const roleNames = { admin_total: 'Administrador total', admin_local: 'Administrador local', viewer: 'Solo lectura' };
+    $('#roleBadge').textContent = roleNames[miPerfil.rol] || miPerfil.rol;
+    $('#roleBadge').className = 'role-badge ' + miPerfil.rol;
+
+    $('#btnAdminPanel').style.display = miPerfil.rol === 'admin_total' ? 'inline-block' : 'none';
+    $('#btnAdd').style.display = (miPerfil.rol === 'admin_total' || miPerfil.rol === 'admin_local') ? 'flex' : 'none';
+
+    await loadSedes();
+    setupSedeUI();
+    await loadItems();
+  }
+
+  // Si ya había una sesión activa (recarga de página), continuar directo.
+  async function checkExistingSession() {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) {
+      await afterLogin();
+    }
+  }
+
+  // =========================================================
+  // SEDES
+  // =========================================================
+  async function loadSedes() {
+    const { data, error } = await supabase.from('sedes').select('*').order('nombre');
+    if (error) { console.error(error); return; }
+    sedes = data || [];
+    const selectFilter = $('#filterSede');
+    const selectForm = $('#inputSede');
+    selectFilter.innerHTML = '<option value="">Todas las sedes</option>' +
+      sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+    selectForm.innerHTML = sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+  }
+
+  function setupSedeUI() {
+    const rol = miPerfil.rol;
+    const puedeVerVarias = rol === 'admin_total' || (rol === 'viewer' && !miPerfil.sede_id);
+    $('#filterSede').style.display = puedeVerVarias ? 'inline-block' : 'none';
+    if (!puedeVerVarias) {
+      $('#sedeLock').style.display = 'inline-flex';
+      $('#sedeLock').textContent = '📍 ' + (miPerfil.sede_id ? sedeName(miPerfil.sede_id) : 'Sin sede asignada');
+    } else {
+      $('#sedeLock').style.display = 'none';
+    }
+
+    // Formulario de agregar: admin_local no elige sede (queda fija a la suya)
+    if (rol === 'admin_local') {
+      $('#wrapSedeForm').style.display = 'none';
+    } else {
+      $('#wrapSedeForm').style.display = 'block';
+    }
+  }
+
+  // =========================================================
+  // ARTÍCULOS: carga y render
+  // =========================================================
+  async function loadItems() {
+    const { data, error } = await supabase
+      .from('articulos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error(error);
+      toast('Error cargando datos: ' + error.message);
+      return;
+    }
+    items = data || [];
+    renderGrid();
+  }
+
+  function matchesFilters(item) {
+    if (currentTab !== 'todos' && item.estado !== currentTab) return false;
+    const cat = $('#filterCategoria').value;
+    if (cat && item.categoria !== cat) return false;
+    const sedeSel = $('#filterSede').value;
+    if (sedeSel && item.sede_id !== sedeSel) return false;
+    const q = $('#searchInput').value.trim().toLowerCase();
+    if (q) {
+      const haystack = [item.tipo, item.color, item.nombre_bordado, item.descripcion, item.lugar_encontrado]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function renderGrid() {
+    const grid = $('#grid');
+    const filtered = items.filter(matchesFilters);
+    grid.innerHTML = '';
+    $('#emptyState').style.display = filtered.length ? 'none' : 'block';
+    const mostrarSede = miPerfil.rol === 'admin_total' || (miPerfil.rol === 'viewer' && !miPerfil.sede_id);
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.addEventListener('click', () => openDetail(item.id));
+      const thumbStyle = item.foto_url ? `style="background-image:url('${item.foto_url}')"` : '';
+      card.innerHTML = `
+        <div class="thumb" ${thumbStyle}>
+          <span class="badge ${item.estado === 'retirado' ? 'retirado' : ''}">${item.estado === 'retirado' ? 'Retirado' : 'Disponible'}</span>
+          ${mostrarSede ? `<span class="badge sede-tag">${escapeHtml(sedeName(item.sede_id))}</span>` : ''}
+        </div>
+        <div class="info">
+          <div class="tipo">${escapeHtml(item.tipo || 'Artículo')}</div>
+          <div class="meta">${escapeHtml(item.color || '')}${item.talla ? ' · Talla ' + escapeHtml(item.talla) : ''}</div>
+          <div class="meta">Encontrado: ${formatDate(item.fecha_encontrado)}</div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  $$('.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      renderGrid();
+    });
+  });
+  $('#searchInput').addEventListener('input', renderGrid);
+  $('#filterCategoria').addEventListener('change', renderGrid);
+  $('#filterSede').addEventListener('change', renderGrid);
+
+  // =========================================================
+  // AGREGAR ARTÍCULO
+  // =========================================================
+  $('#btnAdd').addEventListener('click', () => {
+    resetAddForm();
+    showOverlay('#overlayAdd');
+  });
+  $('#btnCancelAdd').addEventListener('click', () => hideOverlay('#overlayAdd'));
+
+  function resetAddForm() {
+    $('#inputCategoria').value = 'Ropa';
+    $('#inputTipo').value = '';
+    $('#inputColor').value = '';
+    $('#inputTalla').value = '';
+    $('#inputFechaEncontrado').value = new Date().toISOString().slice(0,10);
+    $('#inputTieneNombre').checked = false;
+    $('#inputNombreBordado').value = '';
+    $('#wrapNombreBordado').style.display = 'none';
+    $('#inputLugar').value = '';
+    $('#inputDescripcion').value = '';
+    $('#photoPreview').style.display = 'none';
+    $('#photoPlaceholder').style.display = 'block';
+    $('#inputPhoto').value = '';
+    currentPhotoFile = null;
+    if (miPerfil.rol === 'admin_local' && miPerfil.sede_id) {
+      $('#inputSede').value = miPerfil.sede_id;
+    }
+  }
+
+  $('#inputTieneNombre').addEventListener('change', (e) => {
+    $('#wrapNombreBordado').style.display = e.target.checked ? 'block' : 'none';
+  });
+
+  $('#inputPhoto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentPhotoFile = file;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      $('#photoPreview').src = ev.target.result;
+      $('#photoPreview').style.display = 'block';
+      $('#photoPlaceholder').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  $('#btnSaveAdd').addEventListener('click', async () => {
+    const tipo = $('#inputTipo').value.trim();
+    const fecha = $('#inputFechaEncontrado').value;
+    const sedeId = miPerfil.rol === 'admin_local' ? miPerfil.sede_id : $('#inputSede').value;
+    if (!tipo) { toast('Indica el tipo de artículo'); return; }
+    if (!fecha) { toast('Indica la fecha en que se encontró'); return; }
+    if (!sedeId) { toast('Selecciona una sede'); return; }
+
+    const btn = $('#btnSaveAdd');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+    try {
+      let fotoUrl = null;
+      if (currentPhotoFile) {
+        const path = `${Date.now()}_${currentPhotoFile.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+        const { error: upErr } = await supabase.storage.from('fotos').upload(path, currentPhotoFile);
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('fotos').getPublicUrl(path);
+        fotoUrl = pub.publicUrl;
+      }
+
+      const record = {
+        sede_id: sedeId,
+        categoria: $('#inputCategoria').value,
+        tipo,
+        color: $('#inputColor').value.trim() || null,
+        talla: $('#inputTalla').value.trim() || null,
+        tiene_nombre: $('#inputTieneNombre').checked,
+        nombre_bordado: $('#inputTieneNombre').checked ? ($('#inputNombreBordado').value.trim() || null) : null,
+        descripcion: $('#inputDescripcion').value.trim() || null,
+        foto_url: fotoUrl,
+        lugar_encontrado: $('#inputLugar').value.trim() || null,
+        fecha_encontrado: fecha,
+        registrado_por: miPerfil.nombre || miPerfil.email,
+        estado: 'disponible'
+      };
+
+      const { error } = await supabase.from('articulos').insert(record);
+      if (error) throw error;
+
+      toast('Artículo registrado');
+      hideOverlay('#overlayAdd');
+      loadItems();
+    } catch (err) {
+      console.error(err);
+      toast('Error al guardar: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar artículo';
+    }
+  });
+
+  // =========================================================
+  // DETALLE / RETIRO
+  // =========================================================
+  function openDetail(id) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const sheet = $('#detailSheet');
+    const disponible = item.estado !== 'retirado';
+    const puedeGestionar = miPerfil.rol === 'admin_total' || miPerfil.rol === 'admin_local';
+
+    sheet.innerHTML = `
+      <h2>${escapeHtml(item.tipo)}</h2>
+      ${item.foto_url ? `<img class="detail-photo" src="${item.foto_url}">` : ''}
+      <div class="status-line ${disponible ? '' : 'retirado'}">
+        ${disponible ? 'Disponible para retirar' : `Retirado por ${escapeHtml(item.retirado_por || '—')} el ${formatDate(item.fecha_retiro)}`}
+      </div>
+      <div class="detail-grid">
+        <div><span>Sede</span>${escapeHtml(sedeName(item.sede_id))}</div>
+        <div><span>Categoría</span>${escapeHtml(item.categoria)}</div>
+        <div><span>Color</span>${escapeHtml(item.color || '—')}</div>
+        <div><span>Talla</span>${escapeHtml(item.talla || '—')}</div>
+        <div><span>¿Tiene nombre?</span>${item.tiene_nombre ? 'Sí: ' + escapeHtml(item.nombre_bordado || '') : 'No'}</div>
+        <div><span>Lugar encontrado</span>${escapeHtml(item.lugar_encontrado || '—')}</div>
+        <div><span>Fecha encontrado</span>${formatDate(item.fecha_encontrado)}</div>
+        <div><span>Registrado por</span>${escapeHtml(item.registrado_por || '—')}</div>
+      </div>
+      ${item.descripcion ? `<div class="field"><label>Detalles</label><div style="font-size:13.5px;">${escapeHtml(item.descripcion)}</div></div>` : ''}
+      <hr class="divider">
+      ${disponible && puedeGestionar ? `
+        <h2 style="font-size:15px;">Registrar retiro</h2>
+        <div class="row2">
+          <div class="field">
+            <label>Nombre de quien retira</label>
+            <input type="text" id="inputRetiraNombre" placeholder="Nombre completo">
+          </div>
+          <div class="field">
+            <label>Curso</label>
+            <input type="text" id="inputRetiraCurso" placeholder="Ej: 5°B">
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de retiro</label>
+          <input type="date" id="inputRetiraFecha" value="${new Date().toISOString().slice(0,10)}">
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="btnCloseDetail">Cerrar</button>
+          <button class="btn primary" id="btnConfirmRetiro">Marcar como retirado</button>
+        </div>
+      ` : `
+        <div class="actions">
+          <button class="btn ghost" id="btnCloseDetail">Cerrar</button>
+        </div>
+      `}
+    `;
+
+    $('#btnCloseDetail').addEventListener('click', () => hideOverlay('#overlayDetail'));
+    if (disponible && puedeGestionar) {
+      $('#btnConfirmRetiro').addEventListener('click', () => confirmRetiro(item.id));
+    }
+    showOverlay('#overlayDetail');
+  }
+
+  async function confirmRetiro(id) {
+    const nombre = $('#inputRetiraNombre').value.trim();
+    const curso = $('#inputRetiraCurso').value.trim();
+    const fecha = $('#inputRetiraFecha').value;
+    if (!nombre) { toast('Indica el nombre de quien retira'); return; }
+    if (!fecha) { toast('Indica la fecha de retiro'); return; }
+
+    const btn = $('#btnConfirmRetiro');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+    try {
+      const { error } = await supabase
+        .from('articulos')
+        .update({
+          estado: 'retirado',
+          retirado_por: nombre,
+          curso_retiro: curso || null,
+          fecha_retiro: fecha
+        })
+        .eq('id', id);
+      if (error) throw error;
+      toast('Retiro registrado');
+      hideOverlay('#overlayDetail');
+      loadItems();
+    } catch (err) {
+      console.error(err);
+      toast('Error: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Marcar como retirado';
+    }
+  }
+
+  // =========================================================
+  // PANEL DE ADMINISTRACIÓN (admin_total)
+  // =========================================================
+  $('#btnAdminPanel').addEventListener('click', () => {
+    showOverlay('#overlayAdmin');
+    loadUsersPanel();
+  });
+  $('#btnCloseAdmin').addEventListener('click', () => hideOverlay('#overlayAdmin'));
+  $('#btnReloadUsers').addEventListener('click', loadUsersPanel);
+
+  $$('.admin-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.admin-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.admintab;
+      $('#adminUsuarios').style.display = tab === 'usuarios' ? 'block' : 'none';
+      $('#adminSedes').style.display = tab === 'sedes' ? 'block' : 'none';
+      if (tab === 'sedes') renderSedesPanel();
+    });
+  });
+
+  async function loadUsersPanel() {
+    const { data, error } = await supabase.from('perfiles').select('*').order('email');
+    if (error) { toast('Error: ' + error.message); return; }
+    const list = $('#usersList');
+    list.innerHTML = '';
+    (data || []).forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'user-row';
+      row.innerHTML = `
+        <div class="email">${escapeHtml(p.email || p.id)}</div>
+        <div class="fields-inline">
+          <input type="text" class="ur-nombre" value="${escapeHtml(p.nombre || '')}" placeholder="Nombre">
+          <select class="ur-rol">
+            <option value="viewer" ${p.rol==='viewer'?'selected':''}>Solo lectura</option>
+            <option value="admin_local" ${p.rol==='admin_local'?'selected':''}>Admin local</option>
+            <option value="admin_total" ${p.rol==='admin_total'?'selected':''}>Admin total</option>
+          </select>
+          <select class="ur-sede">
+            <option value="">Sin sede (ve todo si es viewer)</option>
+            ${sedes.map(s => `<option value="${s.id}" ${p.sede_id===s.id?'selected':''}>${escapeHtml(s.nombre)}</option>`).join('')}
+          </select>
+        </div>
+        <button class="save-row">Guardar</button>
+      `;
+      row.querySelector('.save-row').addEventListener('click', async () => {
+        const nombre = row.querySelector('.ur-nombre').value.trim();
+        const rol = row.querySelector('.ur-rol').value;
+        const sedeVal = row.querySelector('.ur-sede').value || null;
+        const { error: updErr } = await supabase.from('perfiles').update({
+          nombre: nombre || null,
+          rol,
+          sede_id: rol === 'admin_total' ? null : sedeVal
+        }).eq('id', p.id);
+        if (updErr) { toast('Error: ' + updErr.message); return; }
+        toast('Usuario actualizado');
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function renderSedesPanel() {
+    const list = $('#sedesList');
+    list.innerHTML = '';
+    sedes.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'sede-row';
+      row.innerHTML = `<span>${escapeHtml(s.nombre)}</span>`;
+      list.appendChild(row);
+    });
+  }
+
+  $('#btnAddSede').addEventListener('click', async () => {
+    const nombre = $('#inputNuevaSede').value.trim();
+    if (!nombre) { toast('Escribe un nombre de sede'); return; }
+    const { error } = await supabase.from('sedes').insert({ nombre });
+    if (error) { toast('Error: ' + error.message); return; }
+    $('#inputNuevaSede').value = '';
+    await loadSedes();
+    renderSedesPanel();
+    toast('Sede agregada');
+  });
+
+  // =========================================================
+  // Cerrar overlays tocando el fondo (excepto login, que no es overlay)
+  // =========================================================
+  $$('.overlay').forEach(ov => {
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) ov.classList.remove('show');
+    });
+  });
+
+  // ---------- Arranque ----------
+  checkExistingSession();
+</script>
+</body>
+</html>
