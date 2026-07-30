@@ -517,7 +517,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.4.0</p>
+    <p class="footer-version">Fundkiste v1.5.0</p>
   </div>
 </div>
 
@@ -561,7 +561,7 @@
 
     <div id="grid" class="grid"></div>
     <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.4.0</p>
+    <p class="footer-version">Fundkiste v1.5.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -652,7 +652,7 @@
 <!-- Overlay: panel de administración (solo admin_total) -->
 <div class="overlay" id="overlayAdmin">
   <div class="sheet wide">
-    <h2>Administrar usuarios y sedes</h2>
+    <h2 id="adminPanelTitle">Administrar usuarios y sedes</h2>
     <div class="admin-tabs">
       <button data-admintab="usuarios" class="active">Usuarios</button>
       <button data-admintab="sedes">Sedes</button>
@@ -847,7 +847,8 @@
     $('#roleBadge').textContent = roleNames[miPerfil.rol] || miPerfil.rol;
     $('#roleBadge').className = 'role-badge ' + miPerfil.rol;
 
-    $('#btnAdminPanel').style.display = miPerfil.rol === 'admin_total' ? 'inline-block' : 'none';
+    $('#btnAdminPanel').style.display = (miPerfil.rol === 'admin_total' || miPerfil.rol === 'admin_local') ? 'inline-block' : 'none';
+    $('#btnAdminPanel').textContent = miPerfil.rol === 'admin_total' ? '👥 Usuarios' : '🔑 Acceso público';
     $('#btnAdd').style.display = (miPerfil.rol === 'admin_total' || miPerfil.rol === 'admin_local') ? 'flex' : 'none';
 
     await loadSedes();
@@ -1170,7 +1171,25 @@
   // =========================================================
   $('#btnAdminPanel').addEventListener('click', () => {
     showOverlay('#overlayAdmin');
-    loadUsersPanel();
+    if (miPerfil.rol === 'admin_local') {
+      // Un administrador local solo puede cambiar la clave de acceso pública,
+      // no gestionar usuarios ni sedes.
+      $('#adminPanelTitle').textContent = 'Acceso público';
+      $('.admin-tabs').style.display = 'none';
+      $('#adminUsuarios').style.display = 'none';
+      $('#adminSedes').style.display = 'none';
+      $('#adminAcceso').style.display = 'block';
+      loadClaveAcceso();
+    } else {
+      $('#adminPanelTitle').textContent = 'Administrar usuarios y sedes';
+      $('.admin-tabs').style.display = 'flex';
+      $$('.admin-tabs button').forEach(b => b.classList.remove('active'));
+      $('.admin-tabs button[data-admintab="usuarios"]').classList.add('active');
+      $('#adminUsuarios').style.display = 'block';
+      $('#adminSedes').style.display = 'none';
+      $('#adminAcceso').style.display = 'none';
+      loadUsersPanel();
+    }
   });
   $('#btnCloseAdmin').addEventListener('click', () => hideOverlay('#overlayAdmin'));
   $('#btnReloadUsers').addEventListener('click', loadUsersPanel);

@@ -280,10 +280,11 @@ alter table configuracion enable row level security;
 
 -- Solo el administrador total puede ver/cambiar la clave desde el panel.
 drop policy if exists "configuracion_admin_total" on configuracion;
-create policy "configuracion_admin_total"
+drop policy if exists "configuracion_gestion" on configuracion;
+create policy "configuracion_gestion"
   on configuracion for all
-  using (get_my_role() = 'admin_total')
-  with check (get_my_role() = 'admin_total');
+  using (get_my_role() in ('admin_total','admin_local'))
+  with check (get_my_role() in ('admin_total','admin_local'));
 
 -- Función pública que compara el intento sin exponer la clave real
 -- (así nadie puede simplemente "leer" la clave llamando a una función).

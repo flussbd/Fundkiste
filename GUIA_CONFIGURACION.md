@@ -74,12 +74,16 @@ Estas mismas sedes aparecerán como botones para elegir en la página pública `
 
 Al ejecutar `setup.sql` se crea una clave por defecto (`cambiar-esta-clave`) que hay que cambiar antes de compartir el link con las familias:
 
-1. Entra a `admin.html` con tu cuenta de administrador total.
-2. Botón **👥 Usuarios** → pestaña **Acceso público**.
+Tanto un administrador total como un administrador local pueden cambiarla:
+
+1. Entra a `admin.html`.
+2. Botón **👥 Usuarios** (admin total) o **🔑 Acceso público** (admin local).
 3. Ahí ves la clave actual y puedes escribir una nueva → **Guardar nueva clave**.
 4. Comparte esa clave con las familias por el medio que uses habitualmente (circular, agenda, etc.) junto con el link de `index.html`.
 
 Importante: esto es una barrera simple para desalentar que cualquiera en internet entre a curiosear, **no es una protección técnica real** — como la app es un archivo estático, alguien con conocimientos técnicos podría revisar el código o llamar directo a la función de verificación. No la uses pensando que protege datos realmente sensibles; para eso existen los roles con login real de `admin.html`.
+
+Nota: hay **una sola clave compartida** para todas las sedes (no una por sede). Si un administrador local la cambia, afecta el acceso a la vitrina de todas las sedes, no solo la suya.
 
 ## Parte 6: Activar la creación de usuarios desde la app (opcional pero recomendado)
 
