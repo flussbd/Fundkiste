@@ -63,12 +63,12 @@
     margin: 0;
     letter-spacing: -0.01em;
   }
-  .version-tag {
-    font-size: 10px;
-    font-weight: 500;
+  .footer-version {
+    text-align: center;
+    font-size: 11px;
     color: var(--ink-soft);
-    vertical-align: middle;
-    margin-left: 2px;
+    opacity: 0.7;
+    margin: 24px 0 4px;
   }
   .brand small {
     display: block;
@@ -79,6 +79,7 @@
   .user-chip {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
@@ -165,7 +166,7 @@
   }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
     gap: 14px;
   }
   .card {
@@ -473,6 +474,23 @@
   }
   .login-card h1 { font-size: 19px; margin: 0 0 4px; }
   .login-card p.sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
+
+  /* ---------- Ajustes para teléfono ---------- */
+  @media (max-width: 480px) {
+    header { padding: 10px 12px; }
+    .brand h1 { font-size: 15px; }
+    .brand .mark { width: 30px; height: 30px; font-size: 15px; }
+    main { padding: 12px 10px 90px; }
+    .toolbar { gap: 6px; }
+    .toolbar input[type="search"], .toolbar select { font-size: 13px; padding: 8px 10px; }
+    .tabs { width: 100%; }
+    .tabs button { flex: 1; padding: 8px 6px; font-size: 12.5px; }
+    .grid { gap: 10px; }
+    .row2 { flex-direction: column; gap: 0; }
+    .sheet { padding: 16px 16px 20px; max-height: 96vh; }
+    .fab { width: 52px; height: 52px; bottom: 16px; right: 16px; font-size: 24px; }
+    .login-card { padding: 22px 18px; }
+  }
 </style>
 </head>
 <body>
@@ -481,7 +499,7 @@
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
     <div class="mark">👕</div>
-    <h1>Fundkiste <span class="version-tag">v1.0.0</span></h1>
+    <h1>Fundkiste</h1>
     <p class="sub">Inicia sesión para ver y registrar objetos perdidos del colegio.</p>
     <div class="error-note" id="loginError"></div>
     <div class="field">
@@ -496,6 +514,7 @@
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:14px;">
       ¿No tienes cuenta? Pídele a un administrador que la cree.
     </p>
+    <p class="footer-version">Fundkiste v1.0.0</p>
   </div>
 </div>
 
@@ -505,7 +524,7 @@
     <div class="brand">
       <div class="mark">👕</div>
       <div>
-        <h1>Fundkiste <span class="version-tag">v1.0.0</span></h1>
+        <h1>Fundkiste</h1>
         <small id="subtitleText">Objetos perdidos del colegio</small>
       </div>
     </div>
@@ -539,6 +558,7 @@
 
     <div id="grid" class="grid"></div>
     <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
+    <p class="footer-version">Fundkiste v1.0.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
