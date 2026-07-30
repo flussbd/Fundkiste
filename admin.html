@@ -5,25 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fundkiste - Administración</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f2ee;
-    --panel: #ffffff;
-    --ink: #24211d;
-    --ink-soft: #6b6560;
-    --line: #e4dfd6;
-    --accent: #8a5a3b;
-    --accent-dark: #6e4529;
-    --accent-soft: #f0e2d4;
-    --ok: #3f7a4f;
-    --ok-soft: #e2efe4;
-    --warn: #b0552c;
-    --warn-soft: #fbe9df;
-    --info: #3c6e9e;
-    --info-soft: #e2ecf5;
+    --bg: #F6F1E4;
+    --panel: #FFFEFA;
+    --ink: #1F2A24;
+    --ink-soft: #6B7A6E;
+    --line: #E4DCC4;
+    --accent: #5B6B4F;
+    --accent-dark: #3F4A38;
+    --accent-soft: #E3E8DD;
+    --ok: #4C7A4E;
+    --ok-soft: #E4EEDF;
+    --warn: #B23A2E;
+    --warn-soft: #F3DCD8;
+    --info: #4A6FA5;
+    --info-soft: #E2ECF5;
+    --brass: #B08D57;
     --radius: 14px;
-    --shadow: 0 1px 2px rgba(36,33,29,0.06), 0 6px 20px rgba(36,33,29,0.06);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --shadow: 0 1px 2px rgba(31,42,36,0.06), 0 6px 20px rgba(31,42,36,0.06);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   * { box-sizing: border-box; }
   body {
@@ -32,6 +36,9 @@
     color: var(--ink);
     min-height: 100vh;
   }
+  h1, .sheet h2, .login-card h1 { font-family: 'Fraunces', Georgia, serif; }
+  .mono, .footer-version, .card .badge { font-family: 'IBM Plex Mono', monospace; }
+  .mark svg { width: 100%; height: 100%; display: block; }
   header {
     background: var(--panel);
     border-bottom: 1px solid var(--line);
@@ -51,15 +58,16 @@
     gap: 10px;
   }
   .brand .mark {
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     border-radius: 9px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-soft);
     display: flex; align-items: center; justify-content: center;
-    font-size: 17px;
+    padding: 6px;
+    flex-shrink: 0;
   }
   .brand h1 {
-    font-size: 16px;
+    font-size: 17px;
+    font-weight: 700;
     margin: 0;
     letter-spacing: -0.01em;
   }
@@ -183,7 +191,7 @@
   .card:hover { transform: translateY(-2px); }
   .card .thumb {
     aspect-ratio: 4/3;
-    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c7ab8f' stroke-width='1.4'%3E%3Cpath d='M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/34px no-repeat;
+    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B08D57' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z'/%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'/%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'/%3E%3C/svg%3E") center/32px no-repeat;
     background-size: cover;
     background-position: center;
     position: relative;
@@ -191,12 +199,15 @@
   .card .badge {
     position: absolute;
     top: 8px; left: 8px;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     padding: 3px 8px;
-    border-radius: 20px;
+    border-radius: 4px;
     background: var(--ok-soft);
     color: var(--ok);
+    border: 1px solid rgba(0,0,0,0.06);
   }
   .card .badge.retirado {
     background: var(--warn-soft);
@@ -204,17 +215,22 @@
   }
   .card .badge.sede-tag {
     top: auto; bottom: 8px; left: 8px;
-    background: rgba(255,255,255,0.9);
+    background: rgba(255,254,250,0.92);
     color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+    border-color: var(--line);
   }
   .card .info { padding: 10px 12px 12px; }
   .card .info .tipo { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .card .info .meta { font-size: 12px; color: var(--ink-soft); }
   .empty {
     text-align: center;
-    padding: 60px 20px;
+    padding: 50px 20px;
     color: var(--ink-soft);
+    font-size: 13.5px;
   }
+  .empty svg { width: 48px; height: 48px; opacity: 0.5; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; }
   .fab {
     position: fixed;
     bottom: 22px; right: 22px;
@@ -224,7 +240,7 @@
     color: #fff;
     border: none;
     font-size: 26px;
-    box-shadow: 0 6px 20px rgba(138,90,59,0.45);
+    box-shadow: 0 6px 20px rgba(91,107,79,0.45);
     cursor: pointer;
     z-index: 30;
     display: flex; align-items: center; justify-content: center;
@@ -464,15 +480,14 @@
     width: 100%;
   }
   .login-card .mark {
-    width: 44px; height: 44px;
+    width: 48px; height: 48px;
     border-radius: 12px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-soft);
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
+    padding: 9px;
     margin-bottom: 14px;
   }
-  .login-card h1 { font-size: 19px; margin: 0 0 4px; }
+  .login-card h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; }
   .login-card p.sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
 
   /* ---------- Ajustes para teléfono ---------- */
@@ -498,7 +513,7 @@
 <!-- ============ PANTALLA DE LOGIN ============ -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
-    <div class="mark">👕</div>
+    <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
     <h1>Fundkiste</h1>
     <p class="sub">Inicia sesión para ver y registrar objetos perdidos del colegio.</p>
     <div class="error-note" id="loginError"></div>
@@ -517,7 +532,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.6.0</p>
+    <p class="footer-version">Fundkiste v2.0.0</p>
   </div>
 </div>
 
@@ -525,7 +540,7 @@
 <div id="appMain">
   <header>
     <div class="brand">
-      <div class="mark">👕</div>
+      <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
       <div>
         <h1>Fundkiste</h1>
         <small id="subtitleText">Objetos perdidos del colegio</small>
@@ -561,8 +576,11 @@
     </div>
 
     <div id="grid" class="grid"></div>
-    <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.6.0</p>
+    <div id="emptyState" class="empty" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <div>No hay artículos que coincidan.</div>
+    </div>
+    <p class="footer-version">Fundkiste v2.0.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -1053,7 +1071,7 @@
         <div class="info">
           <div class="tipo">${escapeHtml(item.tipo || 'Artículo')}</div>
           <div class="meta">${escapeHtml(item.color || '')}${item.talla ? ' · Talla ' + escapeHtml(item.talla) : ''}</div>
-          <div class="meta">Encontrado: ${formatDate(item.fecha_encontrado)}</div>
+          <div class="meta mono">Encontrado ${formatDate(item.fecha_encontrado)}</div>
         </div>
       `;
       grid.appendChild(card);

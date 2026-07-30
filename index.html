@@ -5,22 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fundkiste - Objetos perdidos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f2ee;
-    --panel: #ffffff;
-    --ink: #24211d;
-    --ink-soft: #6b6560;
-    --line: #e4dfd6;
-    --accent: #8a5a3b;
-    --accent-dark: #6e4529;
-    --accent-soft: #f0e2d4;
-    --ok: #3f7a4f;
-    --ok-soft: #e2efe4;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --bg: #F6F1E4;
+    --panel: #FFFEFA;
+    --ink: #1F2A24;
+    --ink-soft: #6B7A6E;
+    --line: #E4DCC4;
+    --accent: #5B6B4F;
+    --accent-dark: #3F4A38;
+    --accent-soft: #E3E8DD;
+    --ok: #4C7A4E;
+    --ok-soft: #E4EEDF;
+    --warn: #B23A2E;
+    --warn-soft: #F3DCD8;
+    --brass: #B08D57;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); min-height: 100vh; }
+  h1, .sheet h2 { font-family: 'Fraunces', Georgia, serif; }
+  .mono, .footer-version, .card .badge { font-family: 'IBM Plex Mono', monospace; }
 
   /* ---------- Pantalla: elegir sede ---------- */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -33,16 +41,16 @@
     max-width: 380px;
     width: 100%;
   }
+  .mark svg { width: 100%; height: 100%; display: block; }
   .login-card .mark {
-    width: 44px; height: 44px;
+    width: 48px; height: 48px;
     border-radius: 12px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-soft);
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
+    padding: 9px;
     margin-bottom: 14px;
   }
-  .login-card h1 { font-size: 19px; margin: 0 0 4px; }
+  .login-card h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; }
   .login-card p.sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
   .sede-btn {
     display: block;
@@ -78,15 +86,14 @@
   }
   .brand { display: flex; align-items: center; gap: 10px; }
   header .mark {
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     border-radius: 9px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-soft);
     display: flex; align-items: center; justify-content: center;
-    font-size: 17px;
+    padding: 6px;
     flex-shrink: 0;
   }
-  header h1 { font-size: 16px; margin: 0; letter-spacing: -0.01em; }
+  header h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
   header small { display: block; color: var(--ink-soft); font-size: 11.5px; margin-top: 1px; }
   .header-actions { display: flex; align-items: center; gap: 14px; }
   .header-actions button, .header-actions a {
@@ -137,7 +144,7 @@
   }
   .card .thumb {
     aspect-ratio: 4/3;
-    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c7ab8f' stroke-width='1.4'%3E%3Cpath d='M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/34px no-repeat;
+    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B08D57' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z'/%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'/%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'/%3E%3C/svg%3E") center/32px no-repeat;
     background-size: cover;
     background-position: center;
     position: relative;
@@ -145,18 +152,24 @@
   .card .badge {
     position: absolute;
     top: 8px; left: 8px;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     padding: 3px 8px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.9);
+    border-radius: 4px;
+    background: rgba(255,254,250,0.92);
     color: var(--ink);
+    border: 1px solid var(--line);
   }
   .card .info { padding: 10px 12px 12px; }
   .card .info .tipo { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .card .info .meta { font-size: 12px; color: var(--ink-soft); }
 
-  .empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
+  .empty { text-align: center; padding: 50px 20px; color: var(--ink-soft); }
+  .empty svg { width: 56px; height: 56px; opacity: 0.5; margin-bottom: 10px; }
+  .empty p { margin: 0; font-size: 13.5px; }
+  .empty p.empty-title { font-family: 'Fraunces', Georgia, serif; font-size: 17px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
 
   .overlay {
     position: fixed; inset: 0;
@@ -229,11 +242,11 @@
 <!-- ============ PANTALLA: CLAVE DE ACCESO ============ -->
 <div class="login-wrap" id="claveWrap">
   <div class="login-card">
-    <div class="mark">👕</div>
+    <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
     <h1>Fundkiste</h1>
     <p class="sub">Objetos perdidos del colegio. Ingresa la clave de acceso que te compartió el colegio.</p>
-    <div class="error-note" id="claveError" style="display:none;color:#b0552c;background:#fbe9df;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:12px;"></div>
-    <input type="password" id="inputClaveAcceso" placeholder="Clave de acceso" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;margin-bottom:12px;">
+    <div class="error-note" id="claveError" style="display:none;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:12px;"></div>
+    <input type="password" id="inputClaveAcceso" placeholder="Clave de acceso" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;margin-bottom:12px;font-family:inherit;">
     <button class="sede-btn" id="btnVerificarClave" style="text-align:center;background:var(--accent);color:#fff;border-color:var(--accent);">Entrar</button>
     <div class="admin-link">
       <a href="admin.html">Acceso para administradores →</a>
@@ -244,7 +257,7 @@
 <!-- ============ PANTALLA: ELEGIR SEDE ============ -->
 <div class="login-wrap" id="sedeWrap" style="display:none;">
   <div class="login-card">
-    <div class="mark">👕</div>
+    <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
     <h1>Fundkiste</h1>
     <p class="sub">Objetos perdidos del colegio. Elige tu sede para ver qué hay disponible.</p>
     <div id="sedeButtons">
@@ -260,7 +273,7 @@
 <div id="appWrap" style="display:none;">
   <header>
     <div class="brand">
-      <div class="mark">👕</div>
+      <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
       <div>
         <h1>Fundkiste</h1>
         <small id="sedeLabel"></small>
@@ -288,8 +301,12 @@
     </div>
 
     <div id="grid" class="grid"></div>
-    <div id="emptyState" class="empty" style="display:none;">No hay artículos disponibles que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.6.0 · Vista pública</p>
+    <div id="emptyState" class="empty" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <p class="empty-title" id="emptyTitle">La caja está vacía</p>
+      <p id="emptySubtitle">No hay artículos disponibles que coincidan con tu búsqueda.</p>
+    </div>
+    <p class="footer-version">Fundkiste v2.0.0 · Vista pública</p>
   </main>
 </div>
 
@@ -422,7 +439,8 @@
     const { data, error } = await sb.rpc('articulos_publicos');
     if (error) {
       console.error(error);
-      $('#emptyState').textContent = 'No pudimos cargar los artículos. Intenta de nuevo más tarde.';
+      $('#emptyTitle').textContent = 'No pudimos abrir la caja';
+      $('#emptySubtitle').textContent = 'Intenta de nuevo más tarde.';
       $('#emptyState').style.display = 'block';
       return;
     }
@@ -447,6 +465,15 @@
     const grid = $('#grid');
     const filtered = items.filter(matchesFilters);
     grid.innerHTML = '';
+    if (!filtered.length) {
+      if (!items.length) {
+        $('#emptyTitle').textContent = 'La caja está vacía';
+        $('#emptySubtitle').textContent = 'Todavía no hay artículos registrados en esta sede.';
+      } else {
+        $('#emptyTitle').textContent = 'Nada por aquí';
+        $('#emptySubtitle').textContent = 'No hay artículos que coincidan con tu búsqueda.';
+      }
+    }
     $('#emptyState').style.display = filtered.length ? 'none' : 'block';
     filtered.forEach(item => {
       const card = document.createElement('div');
@@ -454,11 +481,13 @@
       card.addEventListener('click', () => openDetail(item.id));
       const thumbStyle = item.foto_url ? `style="background-image:url('${item.foto_url}')"` : '';
       card.innerHTML = `
-        <div class="thumb" ${thumbStyle}></div>
+        <div class="thumb" ${thumbStyle}>
+          <span class="badge">${escapeHtml(item.categoria || '')}</span>
+        </div>
         <div class="info">
           <div class="tipo">${escapeHtml(item.tipo || 'Artículo')}</div>
           <div class="meta">${escapeHtml(item.color || '')}${item.talla ? ' · Talla ' + escapeHtml(item.talla) : ''}</div>
-          <div class="meta">Encontrado: ${formatDate(item.fecha_encontrado)}</div>
+          <div class="meta mono">Encontrado ${formatDate(item.fecha_encontrado)}</div>
         </div>
       `;
       grid.appendChild(card);
@@ -478,7 +507,7 @@
         <div><span>Talla</span>${escapeHtml(item.talla || '—')}</div>
         <div><span>¿Tiene nombre?</span>${item.tiene_nombre ? 'Sí: ' + escapeHtml(item.nombre_bordado || '') : 'No'}</div>
         <div><span>Lugar encontrado</span>${escapeHtml(item.lugar_encontrado || '—')}</div>
-        <div><span>Fecha encontrado</span>${formatDate(item.fecha_encontrado)}</div>
+        <div class="mono"><span>Fecha encontrado</span>${formatDate(item.fecha_encontrado)}</div>
       </div>
       <button class="btn" id="btnCloseDetail">Cerrar</button>
     `;
