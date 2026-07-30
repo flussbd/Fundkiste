@@ -246,6 +246,20 @@ $$;
 
 grant execute on function public.articulos_publicos() to anon, authenticated;
 
+-- Lista pública de sedes (solo id y nombre), para el selector de
+-- "elige tu sede" en la vitrina, sin necesitar login.
+create or replace function public.sedes_publicas()
+returns table (id uuid, nombre text)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select id, nombre from sedes order by nombre;
+$$;
+
+grant execute on function public.sedes_publicas() to anon, authenticated;
+
 -- =========================================================
 -- 7. Bootstrap: crear el primer administrador total
 -- =========================================================

@@ -1,10 +1,18 @@
 # Guía de configuración — Fundkiste
 
-La app tiene tres roles:
+## Qué archivo es cada cosa
+
+- **`index.html`** — página principal, pública, sin login. Pide elegir la sede/colegio y muestra los artículos disponibles. Es la que compartes con padres y estudiantes.
+- **`admin.html`** — app de gestión para el personal (requiere iniciar sesión). Desde aquí se registran artículos, se marcan retiros y se administran usuarios/sedes. Hay un link "Acceso para administradores" en `index.html` que lleva aquí.
+- **`vitrina.html`** — ya no se usa directamente, solo redirige a `index.html` (por si alguien guardó ese link de una versión anterior).
+- **`setup.sql`** — script que crea toda la base de datos en Supabase. No se sube a GitHub, solo se pega en el SQL Editor de Supabase.
+- **`crear-usuario-edge-function.ts`** — código que se despliega en Supabase (no en GitHub) para poder crear cuentas de usuario desde `admin.html`.
+
+Roles dentro de `admin.html`:
 
 - **Administrador total**: ve y gestiona artículos de todas las sedes, y administra usuarios/sedes.
 - **Administrador local**: ve y gestiona artículos solo de su propia sede.
-- **Usuario (solo lectura)**: solo puede ver artículos (de su sede, o de todas si no tiene sede asignada). No puede registrar ni marcar retiros.
+- **Usuario (solo lectura)**: solo puede ver artículos. No puede registrar ni marcar retiros.
 
 ## Parte 1: Crear la base de datos en Supabase
 
@@ -12,13 +20,13 @@ La app tiene tres roles:
 2. Crea un nuevo proyecto: dale un nombre (ej. "fundkiste"), elige una contraseña de base de datos (guárdala) y una región cercana.
 3. Espera a que el proyecto termine de crearse (1-2 minutos).
 4. En el menú lateral, ve a **SQL Editor** → **New query**.
-5. Abre el archivo `setup.sql` (incluido junto a esta guía), copia todo su contenido, pégalo en el editor y presiona **Run**.
-   - Esto crea las tablas `sedes`, `perfiles`, `articulos`, las funciones de rol y todas las políticas de seguridad (RLS).
+5. Abre el archivo `setup.sql`, copia todo su contenido, pégalo en el editor y presiona **Run**.
+   - Esto crea las tablas `sedes`, `perfiles`, `articulos`, las funciones de rol, las funciones públicas (`articulos_publicos`, `sedes_publicas`) y todas las políticas de seguridad (RLS).
    - Si la parte del bucket de Storage falla, créalo manualmente: **Storage** → **New bucket** → nombre `fotos` → activa **Public bucket**.
-6. Ve a **Authentication** → **Providers** → **Email**, y desactiva "Confirm email" (así no necesitas que cada usuario confirme su correo; como tú creas las cuentas manualmente, no hace falta).
-7. Ve a **Project Settings** → **API** y copia:
+6. Ve a **Authentication** → **Emails** → **Confirm sign up** (o **Sign In / Providers** → **Email**, según la versión del panel) y desactiva la confirmación por correo.
+7. Ve a **Project Settings** → **API** (o **Data API** / botón **Connect**, según la versión) y copia:
    - **Project URL** (algo como `https://xxxxx.supabase.co`)
-   - **anon public key** (una clave larga que empieza con `eyJ...`)
+   - La clave **publishable** (`sb_publishable_...`) — nunca la **secret** (`sb_secret_...`), esa nunca debe ir en un archivo público.
 
 ## Parte 2: Crear el primer administrador total
 
@@ -29,49 +37,51 @@ La app tiene tres roles:
    update perfiles set rol = 'admin_total' where email = 'tu_correo@colegio.cl';
    ```
 
-3. Con esa cuenta podrás iniciar sesión en la app y, desde el botón "👥 Usuarios", crear sedes y asignar roles al resto del personal (una vez que tú u otro administrador cree sus cuentas en el paso siguiente).
+3. Con esa cuenta podrás iniciar sesión en `admin.html` y, desde el botón "👥 Usuarios", crear sedes y cuentas para el resto del personal.
 
-## Parte 3: Pegar las credenciales en el archivo de la app
+## Parte 3: Pegar las credenciales en los archivos de la app
 
-1. Abre `index.html` con un editor de texto (Bloc de notas sirve).
-2. Busca estas dos líneas cerca del final del archivo:
+1. Abre `admin.html` con un editor de texto (Bloc de notas sirve). Busca:
 
    ```js
-   const SUPABASE_URL = 'PON_TU_SUPABASE_URL_AQUI';
-   const SUPABASE_ANON_KEY = 'PON_TU_SUPABASE_ANON_KEY_AQUI';
+   const SUPABASE_URL = '...';
+   const SUPABASE_ANON_KEY = '...';
    ```
 
-3. Reemplaza los textos entre comillas por el **Project URL** y el **anon public key** que copiaste en la Parte 1, paso 7.
-4. Guarda el archivo.
+   y reemplaza por el **Project URL** y la clave **publishable** de la Parte 1.
+2. Haz lo mismo en `index.html` (tiene las mismas dos líneas).
+3. Guarda ambos archivos.
 
-Nota: el "anon key" está diseñado por Supabase para ir incluido en el código del frontend — no es secreto. La seguridad real (quién puede ver o editar qué) la dan las políticas RLS que ya quedaron configuradas por `setup.sql`.
+Nota: la clave publishable está diseñada por Supabase para ir incluida en el código del frontend — no es secreta. La seguridad real (quién puede ver o editar qué) la dan las políticas RLS y las funciones configuradas por `setup.sql`.
 
 ## Parte 4: Publicar la app en GitHub Pages
 
 1. Ve a [github.com](https://github.com) y crea una cuenta si no tienes una.
-2. Crea un repositorio nuevo (ej. `fundkiste-colegio`), puede ser público o privado.
-3. Sube el archivo `index.html` ya editado (con tus credenciales) a ese repositorio (botón **Add file** → **Upload files**).
+2. Crea un repositorio nuevo (ej. `fundkiste`), puede ser público o privado.
+3. Sube `index.html`, `admin.html` y `vitrina.html` ya editados a ese repositorio (botón **Add file** → **Upload files**).
 4. Ve a **Settings** → **Pages** (menú lateral del repositorio).
 5. En **Branch**, selecciona `main` y carpeta `/ (root)`, luego **Save**.
-6. Espera 1-2 minutos. GitHub te dará una URL tipo `https://tu-usuario.github.io/fundkiste-colegio/` — esa es la dirección de la app.
+6. Espera 1-2 minutos. GitHub te dará una URL tipo `https://tu-usuario.github.io/fundkiste/` — esa es la vitrina pública. La gestión queda en `https://tu-usuario.github.io/fundkiste/admin.html`.
 
 ## Parte 5: Crear sedes
 
-1. Entra a la app con tu cuenta de administrador total.
+1. Entra a `admin.html` con tu cuenta de administrador total.
 2. Botón **👥 Usuarios** → pestaña **Sedes** → agrega cada sede del colegio (ej. "Sede Centro", "Sede Norte").
+
+Estas mismas sedes aparecerán como botones para elegir en la página pública `index.html`.
 
 ## Parte 6: Activar la creación de usuarios desde la app (opcional pero recomendado)
 
-Por defecto, crear cuentas nuevas requiere entrar manualmente a Supabase (**Authentication → Users → Add user**). Si quieres poder crear cuentas directamente desde el panel "👥 Usuarios" de la app, hay que desplegar una función que vive en Supabase (nunca en el archivo público) y que es la única que puede usar la clave de administrador para crear cuentas de forma segura.
+Por defecto, crear cuentas nuevas requiere entrar manualmente a Supabase (**Authentication → Users → Add user**). Si quieres poder crear cuentas directamente desde el panel "👥 Usuarios" de `admin.html`, despliega una función que vive en Supabase (nunca en un archivo público) y que es la única con permiso para crear cuentas de forma segura.
 
 1. En el dashboard de Supabase, ve a **Edge Functions** (menú lateral).
 2. Clic en **Deploy a new function** → **Via Editor**.
 3. Nombra la función exactamente: `crear-usuario`.
-4. Borra el código de ejemplo que trae por defecto y pega todo el contenido del archivo `crear-usuario-edge-function.ts` (incluido junto a esta guía).
-5. Clic en **Deploy** (o el botón equivalente para guardar/publicar).
-6. Listo — no necesitas configurar ninguna clave manualmente: Supabase le da automáticamente a la función acceso seguro a tu proyecto.
+4. Borra el código de ejemplo y pega todo el contenido de `crear-usuario-edge-function.ts`.
+5. Clic en **Deploy**.
+6. No necesitas configurar ninguna clave manualmente: Supabase le da automáticamente a la función acceso seguro a tu proyecto.
 
-Una vez desplegada, en la app: botón **👥 Usuarios** vas a ver arriba un formulario **"Crear cuenta nueva"** con correo, contraseña, nombre, rol y sede. Solo un administrador total puede usarlo (la función lo verifica del lado del servidor, no solo en la pantalla).
+Una vez desplegada, en `admin.html` → botón **👥 Usuarios** aparece arriba un formulario **"Crear cuenta nueva"**. Solo un administrador total puede usarlo (la función lo verifica del lado del servidor, no solo en la pantalla).
 
 Si al crear un usuario aparece un error mencionando la función, revisa que el nombre sea exactamente `crear-usuario` y que se haya desplegado sin errores (la pantalla de Edge Functions muestra el estado/logs).
 
@@ -79,34 +89,26 @@ Si al crear un usuario aparece un error mencionando la función, revisa que el n
 
 Con la función desplegada, para cada persona nueva:
 
-1. Botón **👥 Usuarios** → completa el formulario "Crear cuenta nueva" (correo, contraseña, nombre, rol y sede si corresponde) → **Crear cuenta**.
-2. Avísale su correo y contraseña para que pueda entrar.
+1. En `admin.html`, botón **👥 Usuarios** → completa "Crear cuenta nueva" (correo, contraseña, nombre, rol y sede si corresponde) → **Crear cuenta**.
+2. Avísale su correo y contraseña.
 
-Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmente en Supabase (**Authentication → Users → Add user**) y luego asignarles el rol desde la lista "Usuarios existentes" en el mismo panel.
-
-## Parte 8: Vitrina pública (para padres y estudiantes, sin necesidad de cuenta)
-
-Además de la app con login (`index.html`), hay una página separada, `vitrina.html`, que cualquier persona puede abrir sin iniciar sesión para ver qué artículos están disponibles — pensada para padres o estudiantes que solo quieren revisar si algo suyo está en objetos perdidos.
-
-Por diseño, esta vista pública:
-- Solo muestra artículos con estado **disponible** (los retirados no aparecen).
-- Muestra foto, categoría, tipo, color, talla, sede, lugar y fecha en que se encontró, y el nombre bordado si tiene (para ayudar a identificar el dueño).
-- **No muestra** quién registró el artículo, ni quién lo retiró, ni su curso — esa información queda solo para el personal con cuenta.
-
-Pasos para activarla:
-
-1. Vuelve a correr el archivo `setup.sql` actualizado en el **SQL Editor** de Supabase (agrega la función `articulos_publicos`, que es la que permite esta vista sin exponer datos sensibles). Si ya lo corriste antes, no hay problema en volver a ejecutarlo completo.
-2. Sube `vitrina.html` a tu repositorio de GitHub junto al `index.html` (mismo lugar, mismo repositorio).
-3. Compártela con las familias como `https://tu-usuario.github.io/fundkiste/vitrina.html`. También hay un link a ella desde la pantalla de login de la app principal.
+Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmente en Supabase y asignarles el rol desde la lista "Usuarios existentes" en el mismo panel.
 
 ## ¿Cómo se usa?
 
-- **Registrar un artículo**: botón `+` abajo a la derecha (solo visible para administradores). Se puede tomar foto con la cámara o subir una desde la galería, y llenar categoría, tipo, color, talla, si tiene nombre bordado, dónde se encontró y la fecha. Un administrador local registra directo en su sede; un administrador total elige la sede.
-- **Buscar/filtrar**: barra de búsqueda por texto, filtro por categoría, filtro por sede (si el usuario puede ver más de una), y pestañas de Disponibles / Retirados / Todos.
-- **Marcar como retirado**: al hacer clic en un artículo disponible, los administradores pueden registrar el nombre de quien lo retira, su curso y la fecha. Los usuarios de solo lectura ven el detalle pero no este formulario.
+**`index.html` (público, sin login):**
+- Al entrar, pide elegir la sede — la recuerda para la próxima visita (hay un botón "Cambiar sede" en el encabezado).
+- Muestra los artículos disponibles de esa sede: foto, tipo, color, talla, si tiene nombre, lugar y fecha en que se encontró.
+- No muestra artículos ya retirados, ni quién los registró o retiró.
+- No permite registrar ni retirar artículos — solo consultar.
+
+**`admin.html` (personal con cuenta):**
+- **Registrar un artículo**: botón `+` (solo administradores). Foto opcional, categoría, tipo, color, talla, si tiene nombre bordado, lugar y fecha. Un administrador local registra directo en su sede; un administrador total elige la sede.
+- **Buscar/filtrar**: búsqueda por texto, filtro por categoría, filtro por sede (si el usuario ve más de una), pestañas Disponibles / Retirados / Todos.
+- **Marcar como retirado**: en el detalle de un artículo disponible, los administradores registran nombre, curso y fecha de quien lo retira. Los usuarios de solo lectura ven el detalle pero no este formulario.
 
 ## Notas importantes
 
 - No estoy seguro de los límites exactos del plan gratuito de Supabase en este momento (pueden cambiar); conviene revisar la [documentación oficial de precios](https://supabase.com/pricing) si el colegio espera un volumen alto de fotos o registros.
-- Crear cuentas nuevas se puede hacer desde la app (si desplegaste la función `crear-usuario`, Parte 6) o manualmente desde el panel de Supabase. En ambos casos, la clave de administrador que permite crear cuentas nunca queda en el archivo público `index.html` — vive solo dentro de la función en Supabase.
+- La clave de administrador que permite crear cuentas nunca queda en los archivos públicos — vive solo dentro de la función `crear-usuario` en Supabase.
 - Si alguien olvida su contraseña, se puede restablecer desde **Authentication** → **Users** en Supabase.
