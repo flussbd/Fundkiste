@@ -55,12 +55,34 @@ Nota: el "anon key" está diseñado por Supabase para ir incluido en el código 
 5. En **Branch**, selecciona `main` y carpeta `/ (root)`, luego **Save**.
 6. Espera 1-2 minutos. GitHub te dará una URL tipo `https://tu-usuario.github.io/fundkiste-colegio/` — esa es la dirección de la app.
 
-## Parte 5: Crear sedes y agregar al resto del personal
+## Parte 5: Crear sedes
 
 1. Entra a la app con tu cuenta de administrador total.
 2. Botón **👥 Usuarios** → pestaña **Sedes** → agrega cada sede del colegio (ej. "Sede Centro", "Sede Norte").
-3. Para cada persona nueva: créala en Supabase (**Authentication** → **Users** → **Add user**, marcando "Auto Confirm User"). Avísale su correo y contraseña.
-4. En la app, botón **👥 Usuarios** → pestaña **Usuarios** → **🔄 Recargar lista** → busca su correo, asígnale el rol (Admin local / Admin total / Solo lectura) y, si corresponde, su sede → **Guardar**.
+
+## Parte 6: Activar la creación de usuarios desde la app (opcional pero recomendado)
+
+Por defecto, crear cuentas nuevas requiere entrar manualmente a Supabase (**Authentication → Users → Add user**). Si quieres poder crear cuentas directamente desde el panel "👥 Usuarios" de la app, hay que desplegar una función que vive en Supabase (nunca en el archivo público) y que es la única que puede usar la clave de administrador para crear cuentas de forma segura.
+
+1. En el dashboard de Supabase, ve a **Edge Functions** (menú lateral).
+2. Clic en **Deploy a new function** → **Via Editor**.
+3. Nombra la función exactamente: `crear-usuario`.
+4. Borra el código de ejemplo que trae por defecto y pega todo el contenido del archivo `crear-usuario-edge-function.ts` (incluido junto a esta guía).
+5. Clic en **Deploy** (o el botón equivalente para guardar/publicar).
+6. Listo — no necesitas configurar ninguna clave manualmente: Supabase le da automáticamente a la función acceso seguro a tu proyecto.
+
+Una vez desplegada, en la app: botón **👥 Usuarios** vas a ver arriba un formulario **"Crear cuenta nueva"** con correo, contraseña, nombre, rol y sede. Solo un administrador total puede usarlo (la función lo verifica del lado del servidor, no solo en la pantalla).
+
+Si al crear un usuario aparece un error mencionando la función, revisa que el nombre sea exactamente `crear-usuario` y que se haya desplegado sin errores (la pantalla de Edge Functions muestra el estado/logs).
+
+## Parte 7: Agregar al resto del personal
+
+Con la función desplegada, para cada persona nueva:
+
+1. Botón **👥 Usuarios** → completa el formulario "Crear cuenta nueva" (correo, contraseña, nombre, rol y sede si corresponde) → **Crear cuenta**.
+2. Avísale su correo y contraseña para que pueda entrar.
+
+Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmente en Supabase (**Authentication → Users → Add user**) y luego asignarles el rol desde la lista "Usuarios existentes" en el mismo panel.
 
 ## ¿Cómo se usa?
 
@@ -71,5 +93,5 @@ Nota: el "anon key" está diseñado por Supabase para ir incluido en el código 
 ## Notas importantes
 
 - No estoy seguro de los límites exactos del plan gratuito de Supabase en este momento (pueden cambiar); conviene revisar la [documentación oficial de precios](https://supabase.com/pricing) si el colegio espera un volumen alto de fotos o registros.
-- Crear cuentas nuevas (correo/contraseña) solo se puede hacer desde el panel de Supabase, no desde la app — esto es intencional, por seguridad (crear cuentas requiere una clave de administrador que nunca debe quedar en un archivo público como este).
+- Crear cuentas nuevas se puede hacer desde la app (si desplegaste la función `crear-usuario`, Parte 6) o manualmente desde el panel de Supabase. En ambos casos, la clave de administrador que permite crear cuentas nunca queda en el archivo público `index.html` — vive solo dentro de la función en Supabase.
 - Si alguien olvida su contraseña, se puede restablecer desde **Authentication** → **Users** en Supabase.

@@ -514,7 +514,7 @@
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:14px;">
       ¿No tienes cuenta? Pídele a un administrador que la cree.
     </p>
-    <p class="footer-version">Fundkiste v1.0.0</p>
+    <p class="footer-version">Fundkiste v1.1.0</p>
   </div>
 </div>
 
@@ -558,7 +558,7 @@
 
     <div id="grid" class="grid"></div>
     <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.0.0</p>
+    <p class="footer-version">Fundkiste v1.1.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -656,9 +656,45 @@
     </div>
 
     <div id="adminUsuarios">
-      <div class="info-note">
-        Para crear una cuenta nueva: Supabase &gt; Authentication &gt; Users &gt; Add user (correo y contraseña). Aparecerá aquí automáticamente como "viewer" sin sede — asígnale el rol correcto.
+      <h2 style="font-size:14px;">Crear cuenta nueva</h2>
+      <div class="error-note" id="newUserError"></div>
+      <div class="row2">
+        <div class="field">
+          <label>Correo</label>
+          <input type="email" id="inputNewUserEmail" placeholder="correo@colegio.cl">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="text" id="inputNewUserPassword" placeholder="Mínimo 6 caracteres">
+        </div>
       </div>
+      <div class="row2">
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" id="inputNewUserNombre" placeholder="Nombre completo">
+        </div>
+        <div class="field">
+          <label>Rol</label>
+          <select id="inputNewUserRol">
+            <option value="viewer">Solo lectura</option>
+            <option value="admin_local">Admin local</option>
+            <option value="admin_total">Admin total</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="wrapNewUserSede">
+        <label>Sede</label>
+        <select id="inputNewUserSede">
+          <option value="">Sin sede (ve todo si es solo lectura)</option>
+        </select>
+      </div>
+      <button class="btn primary" id="btnCreateUser" style="width:100%;margin-bottom:6px;">Crear cuenta</button>
+      <p style="font-size:11px;color:var(--ink-soft);margin:0 0 16px;">
+        Requiere que la función "crear-usuario" esté desplegada en Supabase (ver GUIA_CONFIGURACION.md).
+      </p>
+      <hr class="divider">
+
+      <h2 style="font-size:14px;">Usuarios existentes</h2>
       <button class="icon-btn" id="btnReloadUsers" style="margin-bottom:10px;">🔄 Recargar lista</button>
       <div id="usersList"></div>
     </div>
@@ -816,9 +852,14 @@
     sedes = data || [];
     const selectFilter = $('#filterSede');
     const selectForm = $('#inputSede');
+    const selectNewUser = $('#inputNewUserSede');
     selectFilter.innerHTML = '<option value="">Todas las sedes</option>' +
       sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
     selectForm.innerHTML = sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+    if (selectNewUser) {
+      selectNewUser.innerHTML = '<option value="">Sin sede (ve todo si es solo lectura)</option>' +
+        sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+    }
   }
 
   function setupSedeUI() {
@@ -1113,6 +1154,73 @@
   });
   $('#btnCloseAdmin').addEventListener('click', () => hideOverlay('#overlayAdmin'));
   $('#btnReloadUsers').addEventListener('click', loadUsersPanel);
+
+  $('#inputNewUserRol').addEventListener('change', (e) => {
+    $('#wrapNewUserSede').style.display = e.target.value === 'admin_total' ? 'none' : 'block';
+  });
+
+  $('#btnCreateUser').addEventListener('click', async () => {
+    const errBox = $('#newUserError');
+    errBox.style.display = 'none';
+
+    const email = $('#inputNewUserEmail').value.trim();
+    const password = $('#inputNewUserPassword').value;
+    const nombre = $('#inputNewUserNombre').value.trim();
+    const rol = $('#inputNewUserRol').value;
+    const sedeId = rol === 'admin_total' ? null : ($('#inputNewUserSede').value || null);
+
+    if (!email || !password) {
+      errBox.textContent = 'Completa correo y contraseña.';
+      errBox.style.display = 'block';
+      return;
+    }
+    if (password.length < 6) {
+      errBox.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    const btn = $('#btnCreateUser');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creando...';
+
+    try {
+      const { data: sessionData } = await sb.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Sesión no encontrada, vuelve a iniciar sesión.');
+
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/crear-usuario`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ email, password, nombre, rol, sede_id: sedeId })
+      });
+      const result = await resp.json();
+
+      if (!resp.ok || result.error) {
+        throw new Error(result.error || 'No se pudo crear el usuario.');
+      }
+
+      toast('Usuario creado');
+      $('#inputNewUserEmail').value = '';
+      $('#inputNewUserPassword').value = '';
+      $('#inputNewUserNombre').value = '';
+      $('#inputNewUserRol').value = 'viewer';
+      $('#inputNewUserSede').value = '';
+      $('#wrapNewUserSede').style.display = 'block';
+      loadUsersPanel();
+    } catch (err) {
+      console.error(err);
+      errBox.textContent = 'Error: ' + err.message + ' (¿desplegaste la función "crear-usuario" en Supabase?)';
+      errBox.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Crear cuenta';
+    }
+  });
 
   $$('.admin-tabs button').forEach(btn => {
     btn.addEventListener('click', () => {
