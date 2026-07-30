@@ -1267,8 +1267,11 @@
     btn.disabled = true;
     btn.textContent = 'Eliminando...';
     try {
-      const { error } = await sb.from('articulos').delete().eq('id', id);
+      const { data, error } = await sb.from('articulos').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No se eliminó nada. Probablemente falta actualizar los permisos en la base de datos: vuelve a ejecutar setup.sql en Supabase (SQL Editor) para habilitar la eliminación de administrador local.');
+      }
       toast('Artículo eliminado');
       hideOverlay('#overlayDetail');
       loadItems();
