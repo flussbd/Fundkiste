@@ -302,6 +302,24 @@ $$;
 
 grant execute on function public.verificar_clave_publica(text) to anon, authenticated;
 
+-- ---------------------------------------------------------
+-- 6c. Autoedición de nombre propio
+-- ---------------------------------------------------------
+-- Permite que cualquier usuario logueado cambie su propio nombre,
+-- sin poder tocar su rol ni su sede (la función solo actualiza esa
+-- columna y solo para su propia fila, por eso es segura pese a ser
+-- security definer).
+create or replace function public.actualizar_mi_nombre(nuevo_nombre text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update perfiles set nombre = nuevo_nombre where id = auth.uid();
+$$;
+
+grant execute on function public.actualizar_mi_nombre(text) to authenticated;
+
 -- =========================================================
 -- 7. Bootstrap: crear el primer administrador total
 -- =========================================================

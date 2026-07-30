@@ -517,7 +517,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.5.0</p>
+    <p class="footer-version">Fundkiste v1.6.0</p>
   </div>
 </div>
 
@@ -534,6 +534,7 @@
     <div class="user-chip">
       <span id="userLabel"></span>
       <span class="role-badge" id="roleBadge"></span>
+      <button class="icon-btn" id="btnMiCuenta">⚙ Mi cuenta</button>
       <button class="icon-btn" id="btnAdminPanel" style="display:none;">👥 Usuarios</button>
       <button class="icon-btn" id="btnLogout">Salir</button>
     </div>
@@ -561,7 +562,7 @@
 
     <div id="grid" class="grid"></div>
     <div id="emptyState" class="empty" style="display:none;">No hay artículos que coincidan.</div>
-    <p class="footer-version">Fundkiste v1.5.0</p>
+    <p class="footer-version">Fundkiste v1.6.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -647,6 +648,38 @@
 <!-- Overlay: detalle -->
 <div class="overlay" id="overlayDetail">
   <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- Overlay: mi cuenta (cualquier usuario logueado) -->
+<div class="overlay" id="overlayMiCuenta">
+  <div class="sheet">
+    <h2>Mi cuenta</h2>
+
+    <div class="error-note" id="miCuentaNombreError"></div>
+    <div class="field">
+      <label>Nombre</label>
+      <input type="text" id="inputMiNombre" placeholder="Tu nombre">
+    </div>
+    <button class="btn primary" id="btnGuardarMiNombre" style="width:100%;margin-bottom:16px;">Guardar nombre</button>
+
+    <hr class="divider">
+
+    <h2 style="font-size:15px;">Cambiar contraseña</h2>
+    <div class="error-note" id="miCuentaPasswordError"></div>
+    <div class="field">
+      <label>Nueva contraseña</label>
+      <input type="password" id="inputMiPassword1" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="field">
+      <label>Confirmar contraseña</label>
+      <input type="password" id="inputMiPassword2" placeholder="Repite la contraseña">
+    </div>
+    <button class="btn primary" id="btnGuardarMiPassword" style="width:100%;">Cambiar contraseña</button>
+
+    <div class="actions">
+      <button class="btn ghost" id="btnCerrarMiCuenta">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <!-- Overlay: panel de administración (solo admin_total) -->
@@ -818,6 +851,73 @@
     $('#appMain').style.display = 'none';
     $('#loginWrap').style.display = 'flex';
     $('#inputPassword').value = '';
+  });
+
+  $('#btnMiCuenta').addEventListener('click', () => {
+    $('#inputMiNombre').value = miPerfil.nombre || '';
+    $('#inputMiPassword1').value = '';
+    $('#inputMiPassword2').value = '';
+    $('#miCuentaNombreError').style.display = 'none';
+    $('#miCuentaPasswordError').style.display = 'none';
+    showOverlay('#overlayMiCuenta');
+  });
+  $('#btnCerrarMiCuenta').addEventListener('click', () => hideOverlay('#overlayMiCuenta'));
+
+  $('#btnGuardarMiNombre').addEventListener('click', async () => {
+    const nuevoNombre = $('#inputMiNombre').value.trim();
+    const errBox = $('#miCuentaNombreError');
+    errBox.style.display = 'none';
+    if (!nuevoNombre) { toast('Escribe tu nombre'); return; }
+
+    const btn = $('#btnGuardarMiNombre');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    const { error } = await sb.rpc('actualizar_mi_nombre', { nuevo_nombre: nuevoNombre });
+    btn.disabled = false;
+    btn.textContent = 'Guardar nombre';
+
+    if (error) {
+      errBox.textContent = 'Error: ' + error.message;
+      errBox.style.display = 'block';
+      return;
+    }
+    miPerfil.nombre = nuevoNombre;
+    $('#userLabel').textContent = `👤 ${miPerfil.nombre || miPerfil.email}`;
+    toast('Nombre actualizado');
+  });
+
+  $('#btnGuardarMiPassword').addEventListener('click', async () => {
+    const p1 = $('#inputMiPassword1').value;
+    const p2 = $('#inputMiPassword2').value;
+    const errBox = $('#miCuentaPasswordError');
+    errBox.style.display = 'none';
+
+    if (!p1 || p1.length < 6) {
+      errBox.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+      errBox.style.display = 'block';
+      return;
+    }
+    if (p1 !== p2) {
+      errBox.textContent = 'Las contraseñas no coinciden.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    const btn = $('#btnGuardarMiPassword');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    btn.disabled = false;
+    btn.textContent = 'Cambiar contraseña';
+
+    if (error) {
+      errBox.textContent = 'Error: ' + error.message;
+      errBox.style.display = 'block';
+      return;
+    }
+    $('#inputMiPassword1').value = '';
+    $('#inputMiPassword2').value = '';
+    toast('Contraseña actualizada');
   });
 
   async function afterLogin() {

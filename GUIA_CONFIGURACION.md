@@ -122,6 +122,7 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 - **Registrar un artículo**: botón `+` (solo administradores). Foto opcional, categoría, tipo, color, talla, si tiene nombre bordado, lugar y fecha. Un administrador local registra directo en su sede; un administrador total elige la sede.
 - **Buscar/filtrar**: búsqueda por texto, filtro por categoría, filtro por sede (si el usuario ve más de una), pestañas Disponibles / Retirados / Todos.
 - **Marcar como retirado**: en el detalle de un artículo disponible, los administradores registran nombre, curso y fecha de quien lo retira. Los usuarios de solo lectura ven el detalle pero no este formulario.
+- **Mi cuenta**: cualquier usuario logueado (sin importar su rol) puede cambiar su propio nombre y su contraseña desde el botón "⚙ Mi cuenta" en el encabezado. No puede cambiar su propio rol ni sede desde ahí — eso lo sigue controlando solo el administrador total (o local, para la clave de acceso pública).
 
 ## Notas importantes
 
