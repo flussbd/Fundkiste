@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundkiste - Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F1E4;
+    --panel: #FFFEFA;
+    --ink: #1F2A24;
+    --ink-soft: #6B7A6E;
+    --line: #E4DCC4;
+    --accent: #5B6B4F;
+    --accent-dark: #3F4A38;
+    --accent-soft: #E3E8DD;
+    --ok: #4C7A4E;
+    --ok-soft: #E4EEDF;
+    --warn: #B23A2E;
+    --warn-soft: #F3DCD8;
+    --info: #4A6FA5;
+    --info-soft: #E2ECF5;
+    --brass: #B08D57;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(31,42,36,0.06), 0 6px 20px rgba(31,42,36,0.06);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); min-height: 100vh; }
+  h1, .login-card h1, .dash-card h2 { font-family: 'Fraunces', Georgia, serif; }
+  .mono, .footer-version { font-family: 'IBM Plex Mono', monospace; }
+  .mark svg { width: 100%; height: 100%; display: block; }
+
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    padding: 6px; flex-shrink: 0;
+  }
+  .brand h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .brand small { display: block; color: var(--ink-soft); font-size: 11.5px; margin-top: 1px; }
+  .user-chip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--ink-soft); }
+  .role-badge {
+    font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    background: var(--info-soft); color: var(--info);
+  }
+  .role-badge.admin_total { background: var(--accent-soft); color: var(--accent-dark); }
+  .role-badge.admin_local { background: var(--ok-soft); color: var(--ok); }
+  .icon-btn, .link-btn {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 10px; font-size: 13px; cursor: pointer; color: var(--ink);
+    text-decoration: none; display: inline-block;
+  }
+  .user-chip button { background: none; border: none; color: var(--accent); font-size: 12.5px; cursor: pointer; padding: 4px 6px; }
+
+  main { max-width: 980px; margin: 0 auto; padding: 20px 18px 60px; }
+
+  .error-note {
+    background: var(--warn-soft); color: var(--warn);
+    border: 1px solid var(--warn); border-radius: 10px;
+    padding: 9px 12px; margin-bottom: 8px; font-size: 13.5px; display: none;
+  }
+
+  .filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .filter-row label { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+  .filter-row select {
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px;
+    font-size: 13.5px; color: var(--ink); background: #fff; font-family: inherit;
+  }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .kpi-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 14px 16px;
+  }
+  .kpi-card .kpi-label { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 4px; }
+  .kpi-card .kpi-value { font-size: 26px; font-weight: 700; font-family: 'Fraunces', Georgia, serif; }
+  .kpi-card.ok .kpi-value { color: var(--ok); }
+  .kpi-card.warn .kpi-value { color: var(--brass); }
+
+  .dash-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 18px;
+  }
+  .dash-card h2 { font-size: 16px; margin: 0 0 4px; }
+  .dash-card .dash-sub { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 14px; }
+  .dash-empty { font-size: 13px; color: var(--ink-soft); margin: 6px 0; }
+
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 13px; }
+  .bar-label { flex: 0 0 150px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 10px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; }
+  .bar-count { flex: 0 0 28px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--ink-soft); }
+
+  .trend-chart { display: flex; align-items: flex-end; gap: 10px; height: 140px; padding-top: 10px; }
+  .trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .trend-bar { width: 60%; min-height: 3px; background: var(--accent); border-radius: 4px 4px 0 0; }
+  .trend-value { font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: 4px; }
+  .trend-label { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; text-transform: capitalize; }
+
+  .tabla-simple { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tabla-simple th, .tabla-simple td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .tabla-simple th { color: var(--ink-soft); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .tabla-simple tbody tr:last-child td { border-bottom: none; }
+
+  .footer-version { text-align: center; font-size: 11px; color: var(--ink-soft); opacity: 0.7; margin: 24px 0 4px; }
+
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input[type="text"], .field input[type="email"], .field input[type="password"] {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px;
+    font-size: 14px; color: var(--ink); background: #fff; font-family: inherit;
+  }
+  .btn { padding: 11px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:disabled { opacity: 0.55; cursor: default; }
+
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 28px 24px; max-width: 380px; width: 100%;
+  }
+  .login-card .mark {
+    width: 48px; height: 48px; border-radius: 12px; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; padding: 9px; margin-bottom: 14px;
+  }
+  .login-card h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; }
+  .login-card p.sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
+
+  @media (max-width: 640px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .bar-label { flex-basis: 100px; }
+    header { padding: 10px 12px; }
+    main { padding: 14px 12px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PANTALLA DE LOGIN ============ -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
+    <h1>Fundkiste</h1>
+    <p class="sub">Inicia sesión para ver el dashboard.</p>
+    <div class="error-note" id="loginError"></div>
+    <div class="field">
+      <label>Correo</label>
+      <input type="email" id="inputEmail" placeholder="tu_correo@colegio.cl" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="inputPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn primary" id="btnLogin" style="width:100%;">Iniciar sesión</button>
+    <p style="text-align:center;margin-top:14px;">
+      <a href="admin.html" style="font-size:12.5px;color:var(--accent);">← Volver a la administración</a>
+    </p>
+    <p class="footer-version">Fundkiste v1.7</p>
+  </div>
+</div>
+
+<!-- ============ APP PRINCIPAL ============ -->
+<div id="appMain" style="display:none;">
+  <header>
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M34 14 L40 6" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round" fill="none"/><g transform="rotate(18 41 5.5)"><rect x="36.5" y="2.5" width="9" height="6" rx="1.5" fill="#F6F1E4" stroke="#1F2A24" stroke-width="1.2"/><circle cx="38.7" cy="5.3" r="0.8" fill="#1F2A24"/></g><rect x="5" y="12" width="30" height="6" rx="1.5" fill="#B08D57" stroke="#1F2A24" stroke-width="1.4"/><rect x="7" y="18" width="26" height="19" rx="2" fill="#5B6B4F" stroke="#1F2A24" stroke-width="1.4"/><line x1="7" y1="27.5" x2="33" y2="27.5" stroke="#1F2A24" stroke-width="1.1" opacity="0.45"/><line x1="20" y1="18" x2="20" y2="37" stroke="#1F2A24" stroke-width="1.1" opacity="0.3"/></svg></div>
+      <div>
+        <h1>Fundkiste</h1>
+        <small>Dashboard</small>
+      </div>
+    </div>
+    <div class="user-chip">
+      <span id="userLabel"></span>
+      <span class="role-badge" id="roleBadge"></span>
+      <a class="icon-btn" href="admin.html">← Artículos</a>
+      <button class="icon-btn" id="btnLogout">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="error-note" id="dashboardError"></div>
+
+    <div id="soloAdminNote" style="display:none;">
+      <div class="dash-card">
+        <h2>Solo para administradores</h2>
+        <p class="dash-sub">Esta vista está disponible solo para cuentas de administrador total o administrador local.</p>
+        <a class="icon-btn" href="admin.html">← Volver a artículos</a>
+      </div>
+    </div>
+
+    <div id="dashboardContent">
+      <div class="filter-row" id="filterSedeWrap" style="display:none;">
+        <label>Sede</label>
+        <select id="filterSedeDashboard"><option value="">Todas las sedes</option></select>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Total artículos</div><div class="kpi-value" id="kpiTotal">—</div></div>
+        <div class="kpi-card ok"><div class="kpi-label">Disponibles</div><div class="kpi-value" id="kpiDisponibles">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Retirados</div><div class="kpi-value" id="kpiRetirados">—</div></div>
+        <div class="kpi-card warn"><div class="kpi-label">% retirado</div><div class="kpi-value" id="kpiPctRetirado">—</div></div>
+      </div>
+
+      <div class="dash-card" id="seccionComparacionSedes" style="display:none;">
+        <h2>Comparación entre sedes</h2>
+        <p class="dash-sub">Todas las sedes registradas, ordenadas por total de artículos.</p>
+        <div id="tablaComparacionSedes"></div>
+      </div>
+
+      <div class="dash-card">
+        <h2>Por categoría</h2>
+        <p class="dash-sub">Cantidad de artículos según categoría.</p>
+        <div id="categoriasBars"></div>
+      </div>
+
+      <div class="dash-card" id="seccionPuntos">
+        <h2>Por punto de acopio</h2>
+        <p class="dash-sub">Cantidad de artículos según el punto donde se registraron.</p>
+        <div id="puntosBars"></div>
+      </div>
+
+      <div class="dash-card">
+        <h2>Tendencia (últimos 6 meses)</h2>
+        <p class="dash-sub">Artículos registrados por mes, según su fecha de encontrado.</p>
+        <div class="trend-chart" id="tendenciaChart"></div>
+      </div>
+
+      <div class="dash-card">
+        <h2>Sin retirar hace tiempo (<span id="antiguosCount">0</span>)</h2>
+        <p class="dash-sub">Artículos disponibles hace más de 30 días.</p>
+        <div id="tablaAntiguos"></div>
+      </div>
+    </div>
+
+    <p class="footer-version">Fundkiste v1.7</p>
+  </main>
+</div>
+
+<script>
+  // =========================================================
+  // CONFIGURA AQUÍ tu proyecto Supabase antes de publicar
+  // (ver GUIA_CONFIGURACION.md). El "anon key" está diseñado
+  // para ser público en el frontend; la seguridad real la dan
+  // las políticas RLS configuradas en setup.sql.
+  // =========================================================
+  const SUPABASE_URL = 'https://whdmgrnbakkixdrqrurp.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_DcwRpMcYcBoEVsokJN82hA_bxR-beQa';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = (sel) => document.querySelector(sel);
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  let miPerfil = null;
+  let sedes = [];
+  let puntos = [];
+  let articulos = [];
+  let filtroSede = '';
+
+  // ---------- Auth ----------
+  $('#btnLogin').addEventListener('click', doLogin);
+  $('#inputPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  async function doLogin() {
+    const email = $('#inputEmail').value.trim();
+    const password = $('#inputPassword').value;
+    const errBox = $('#loginError');
+    errBox.style.display = 'none';
+    if (!email || !password) {
+      errBox.textContent = 'Ingresa tu correo y contraseña.';
+      errBox.style.display = 'block';
+      return;
+    }
+    const btn = $('#btnLogin');
+    btn.disabled = true;
+    btn.textContent = 'Ingresando...';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    btn.disabled = false;
+    btn.textContent = 'Iniciar sesión';
+    if (error) {
+      errBox.textContent = 'Correo o contraseña incorrectos.';
+      errBox.style.display = 'block';
+      return;
+    }
+    await afterLogin();
+  }
+
+  $('#btnLogout').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+
+  async function checkExistingSession() {
+    const { data } = await sb.auth.getSession();
+    if (data?.session) await afterLogin();
+  }
+
+  async function afterLogin() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    const { data: perfil, error } = await sb.from('perfiles').select('*').eq('id', user.id).single();
+    if (error || !perfil) {
+      $('#loginError').textContent = 'No se pudo cargar tu perfil.';
+      $('#loginError').style.display = 'block';
+      return;
+    }
+    miPerfil = perfil;
+
+    $('#loginWrap').style.display = 'none';
+    $('#appMain').style.display = 'block';
+    $('#userLabel').textContent = `👤 ${miPerfil.nombre || miPerfil.email}`;
+    const roleNames = { admin_total: 'Administrador total', admin_local: 'Administrador local', viewer: 'Solo lectura' };
+    $('#roleBadge').textContent = roleNames[miPerfil.rol] || miPerfil.rol;
+    $('#roleBadge').className = 'role-badge ' + miPerfil.rol;
+
+    if (miPerfil.rol !== 'admin_total' && miPerfil.rol !== 'admin_local') {
+      $('#dashboardContent').style.display = 'none';
+      $('#soloAdminNote').style.display = 'block';
+      return;
+    }
+
+    $('#filterSedeWrap').style.display = miPerfil.rol === 'admin_total' ? 'flex' : 'none';
+
+    await cargarDatos();
+  }
+
+  async function cargarDatos() {
+    const [sedesRes, puntosRes, articulosRes] = await Promise.all([
+      sb.from('sedes').select('*').order('nombre'),
+      sb.from('puntos').select('*'),
+      sb.from('articulos').select('*')
+    ]);
+    const err = sedesRes.error || puntosRes.error || articulosRes.error;
+    if (err) {
+      console.error(err);
+      $('#dashboardError').textContent = 'Error al cargar los datos: ' + err.message;
+      $('#dashboardError').style.display = 'block';
+      return;
+    }
+    sedes = sedesRes.data || [];
+    puntos = puntosRes.data || [];
+    articulos = articulosRes.data || [];
+
+    if (miPerfil.rol === 'admin_total') poblarSelectSede();
+    renderTodo();
+  }
+
+  function poblarSelectSede() {
+    const sel = $('#filterSedeDashboard');
+    sel.innerHTML = '<option value="">Todas las sedes</option>' +
+      sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+  }
+
+  $('#filterSedeDashboard').addEventListener('change', (e) => {
+    filtroSede = e.target.value;
+    renderTodo();
+  });
+
+  function sedeName(id) {
+    const s = sedes.find(s => s.id === id);
+    return s ? s.nombre : '—';
+  }
+
+  function puntoName(id) {
+    if (!id) return null;
+    const p = puntos.find(p => p.id === id);
+    return p ? p.nombre : null;
+  }
+
+  function itemsFiltrados() {
+    if (miPerfil.rol === 'admin_total' && filtroSede) {
+      return articulos.filter(a => a.sede_id === filtroSede);
+    }
+    return articulos;
+  }
+
+  function renderTodo() {
+    const items = itemsFiltrados();
+    renderKPIs(items);
+    renderCategorias(items);
+    renderTendencia(items);
+    renderAntiguos(items);
+
+    const mostrarTodasSedes = miPerfil.rol === 'admin_total' && !filtroSede;
+    $('#seccionComparacionSedes').style.display = mostrarTodasSedes ? 'block' : 'none';
+    $('#seccionPuntos').style.display = mostrarTodasSedes ? 'none' : 'block';
+    if (mostrarTodasSedes) {
+      renderComparacionSedes(articulos);
+    } else {
+      renderPuntos(items);
+    }
+  }
+
+  function renderKPIs(items) {
+    const total = items.length;
+    const disponibles = items.filter(a => a.estado !== 'retirado').length;
+    const retirados = total - disponibles;
+    const pct = total ? Math.round((retirados / total) * 100) : 0;
+    $('#kpiTotal').textContent = total;
+    $('#kpiDisponibles').textContent = disponibles;
+    $('#kpiRetirados').textContent = retirados;
+    $('#kpiPctRetirado').textContent = total ? pct + '%' : '—';
+  }
+
+  function barListHtml(pairs) {
+    if (!pairs.length) return '<p class="dash-empty">Sin datos todavía.</p>';
+    const max = Math.max(...pairs.map(p => p[1]), 1);
+    return pairs.map(([label, count]) => `
+      <div class="bar-row">
+        <div class="bar-label">${escapeHtml(label)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((count / max) * 100)}%"></div></div>
+        <div class="bar-count">${count}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderCategorias(items) {
+    const cuentas = {};
+    items.forEach(a => { cuentas[a.categoria] = (cuentas[a.categoria] || 0) + 1; });
+    const pairs = Object.entries(cuentas).sort((a, b) => b[1] - a[1]);
+    $('#categoriasBars').innerHTML = barListHtml(pairs);
+  }
+
+  function renderPuntos(items) {
+    const cuentas = {};
+    let sinPunto = 0;
+    items.forEach(a => {
+      if (!a.punto_id) { sinPunto++; return; }
+      const nombre = puntoName(a.punto_id) || 'Punto eliminado';
+      cuentas[nombre] = (cuentas[nombre] || 0) + 1;
+    });
+    const pairs = Object.entries(cuentas).sort((a, b) => b[1] - a[1]);
+    if (sinPunto) pairs.push(['Sin punto específico', sinPunto]);
+    $('#puntosBars').innerHTML = barListHtml(pairs);
+  }
+
+  function renderComparacionSedes(items) {
+    const porSede = {};
+    items.forEach(a => {
+      if (!porSede[a.sede_id]) porSede[a.sede_id] = { total: 0, disponibles: 0 };
+      porSede[a.sede_id].total++;
+      if (a.estado !== 'retirado') porSede[a.sede_id].disponibles++;
+    });
+    const filas = sedes.map(s => {
+      const d = porSede[s.id] || { total: 0, disponibles: 0 };
+      const retirados = d.total - d.disponibles;
+      const pct = d.total ? Math.round((retirados / d.total) * 100) : 0;
+      return { nombre: s.nombre, total: d.total, disponibles: d.disponibles, retirados, pct };
+    }).sort((a, b) => b.total - a.total);
+
+    if (!filas.length) {
+      $('#tablaComparacionSedes').innerHTML = '<p class="dash-empty">Aún no hay sedes creadas.</p>';
+      return;
+    }
+
+    $('#tablaComparacionSedes').innerHTML = `
+      <table class="tabla-simple">
+        <thead><tr><th>Sede</th><th>Total</th><th>Disponibles</th><th>Retirados</th><th>% retirado</th></tr></thead>
+        <tbody>
+          ${filas.map(f => `
+            <tr>
+              <td>${escapeHtml(f.nombre)}</td>
+              <td>${f.total}</td>
+              <td>${f.disponibles}</td>
+              <td>${f.retirados}</td>
+              <td>${f.total ? f.pct + '%' : '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  function renderTendencia(items) {
+    const hoy = new Date();
+    const meses = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      meses.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: MESES[d.getMonth()] });
+    }
+    const cuentas = {};
+    items.forEach(a => {
+      if (!a.fecha_encontrado) return;
+      const key = a.fecha_encontrado.slice(0, 7);
+      cuentas[key] = (cuentas[key] || 0) + 1;
+    });
+    const valores = meses.map(m => cuentas[m.key] || 0);
+    const max = Math.max(...valores, 1);
+    $('#tendenciaChart').innerHTML = meses.map((m, i) => `
+      <div class="trend-col">
+        <div class="trend-value">${valores[i]}</div>
+        <div class="trend-bar" style="height:${Math.round((valores[i] / max) * 100)}%"></div>
+        <div class="trend-label">${m.label}</div>
+      </div>
+    `).join('');
+  }
+
+  const DIAS_ANTIGUO = 30;
+
+  function renderAntiguos(items) {
+    const hoy = new Date();
+    const mostrarSede = miPerfil.rol === 'admin_total' && !filtroSede;
+    const antiguos = items
+      .filter(a => a.estado !== 'retirado' && a.fecha_encontrado)
+      .map(a => {
+        const dias = Math.floor((hoy - new Date(a.fecha_encontrado)) / 86400000);
+        return Object.assign({}, a, { dias });
+      })
+      .filter(a => a.dias >= DIAS_ANTIGUO)
+      .sort((a, b) => b.dias - a.dias);
+
+    $('#antiguosCount').textContent = antiguos.length;
+
+    if (!antiguos.length) {
+      $('#tablaAntiguos').innerHTML = `<p class="dash-empty">No hay artículos disponibles hace más de ${DIAS_ANTIGUO} días. 🎉</p>`;
+      return;
+    }
+
+    $('#tablaAntiguos').innerHTML = `
+      <table class="tabla-simple">
+        <thead>
+          <tr>
+            <th>Artículo</th>
+            <th>Categoría</th>
+            ${mostrarSede ? '<th>Sede</th>' : ''}
+            <th>Encontrado</th>
+            <th>Días</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${antiguos.map(a => `
+            <tr>
+              <td>${escapeHtml(a.tipo || 'Artículo')}</td>
+              <td>${escapeHtml(a.categoria || '—')}</td>
+              ${mostrarSede ? `<td>${escapeHtml(sedeName(a.sede_id))}</td>` : ''}
+              <td class="mono">${escapeHtml(a.fecha_encontrado)}</td>
+              <td>${a.dias}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  checkExistingSession();
+</script>
+</body>
+</html>

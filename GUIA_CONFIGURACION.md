@@ -4,6 +4,7 @@
 
 - **`index.html`** — página principal, pública, sin login (pero pide una clave de acceso compartida). Pide elegir la sede/colegio y muestra los artículos disponibles. Es la que compartes con padres y estudiantes.
 - **`admin.html`** — app de gestión para el personal (requiere iniciar sesión). Desde aquí se registran artículos, se marcan retiros y se administran usuarios/sedes. Hay un link "Acceso para administradores" en `index.html` que lleva aquí.
+- **`dashboard.html`** — panel con estadísticas (KPIs, tendencia, artículos antiguos sin retirar, etc.), solo para administrador total y administrador local. Se accede desde el botón "📊 Dashboard" en `admin.html`.
 - **`vitrina.html`** — ya no se usa directamente, solo redirige a `index.html` (por si alguien guardó ese link de una versión anterior).
 - **`setup.sql`** — script que crea toda la base de datos en Supabase. No se sube a GitHub, solo se pega en el SQL Editor de Supabase.
 - **`crear-usuario-edge-function.ts`** — código que se despliega en Supabase (no en GitHub) para poder crear cuentas de usuario desde `admin.html`.
@@ -49,8 +50,8 @@ Roles dentro de `admin.html`:
    ```
 
    y reemplaza por el **Project URL** y la clave **publishable** de la Parte 1.
-2. Haz lo mismo en `index.html` (tiene las mismas dos líneas).
-3. Guarda ambos archivos.
+2. Haz lo mismo en `index.html` y en `dashboard.html` (tienen las mismas dos líneas).
+3. Guarda los tres archivos.
 
 Nota: la clave publishable está diseñada por Supabase para ir incluida en el código del frontend — no es secreta. La seguridad real (quién puede ver o editar qué) la dan las políticas RLS y las funciones configuradas por `setup.sql`.
 
@@ -58,7 +59,7 @@ Nota: la clave publishable está diseñada por Supabase para ir incluida en el c
 
 1. Ve a [github.com](https://github.com) y crea una cuenta si no tienes una.
 2. Crea un repositorio nuevo (ej. `fundkiste`), puede ser público o privado.
-3. Sube `index.html`, `admin.html` y `vitrina.html` ya editados a ese repositorio (botón **Add file** → **Upload files**).
+3. Sube `index.html`, `admin.html`, `dashboard.html` y `vitrina.html` ya editados a ese repositorio (botón **Add file** → **Upload files**).
 4. Ve a **Settings** → **Pages** (menú lateral del repositorio).
 5. En **Branch**, selecciona `main` y carpeta `/ (root)`, luego **Save**.
 6. Espera 1-2 minutos. GitHub te dará una URL tipo `https://tu-usuario.github.io/fundkiste/` — esa es la vitrina pública. La gestión queda en `https://tu-usuario.github.io/fundkiste/admin.html`.
@@ -143,6 +144,13 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 - **Editar la información de un artículo**: en el detalle de cualquier artículo, botón "Editar información". Solo lo ve un administrador local (ni el administrador total ni los usuarios de solo lectura tienen este botón), y solo si el punto de acopio del artículo está entre sus puntos permitidos (ver "Restringir qué puntos puede gestionar un administrador local" más arriba).
 - **Eliminar un artículo**: en el detalle de cualquier artículo, botón "Eliminar artículo" (pide confirmación). Un administrador total puede eliminar de cualquier sede; un administrador local solo de su propia sede (y de los puntos que tenga permitidos, si se le configuró esa restricción). Los usuarios de solo lectura no ven este botón. Si ya tenías la base de datos creada de antes, debes volver a ejecutar `setup.sql` para que el administrador local quede habilitado para eliminar (antes solo lo permitía admin_total).
 - **Mi cuenta**: cualquier usuario logueado (sin importar su rol) puede cambiar su propio nombre y su contraseña desde el botón "⚙ Mi cuenta" en el encabezado. No puede cambiar su propio rol ni sede desde ahí — eso lo sigue controlando solo el administrador total (o local, para la clave de acceso pública).
+
+**`dashboard.html` (solo administradores):**
+- Se abre desde el botón "📊 Dashboard" en `admin.html`, o entrando directo a la URL si ya iniciaste sesión antes.
+- Muestra: totales y % de artículos retirados, desglose por categoría, desglose por punto de acopio, tendencia de artículos registrados en los últimos 6 meses, y una lista de artículos disponibles hace más de 30 días sin que nadie los retire.
+- Un administrador total ve, por defecto, los datos de todas las sedes juntas y una tabla comparando sede por sede; puede elegir una sede específica en el selector para ver su desglose por punto de acopio en detalle (al elegir una sede puntual, la comparación entre sedes se oculta y aparece el desglose por punto).
+- Un administrador local ve directamente los datos de su propia sede, sin selector ni comparación entre sedes.
+- Un usuario de solo lectura no puede entrar (ve un aviso de que es solo para administradores).
 
 ## Notas importantes
 
