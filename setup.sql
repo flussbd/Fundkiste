@@ -276,8 +276,20 @@ grant execute on function public.sedes_publicas() to anon, authenticated;
 create table if not exists configuracion (
   id int primary key default 1,
   clave_acceso text not null default 'cambiar-esta-clave',
+  clave_actualizada timestamptz not null default now(),
   constraint configuracion_solo_una_fila check (id = 1)
 );
+
+-- Si la tabla ya existía de una versión anterior sin esta columna, agrégala:
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'configuracion' and column_name = 'clave_actualizada'
+  ) then
+    alter table configuracion add column clave_actualizada timestamptz not null default now();
+  end if;
+end $$;
 
 insert into configuracion (id) values (1) on conflict (id) do nothing;
 
@@ -290,6 +302,26 @@ create policy "configuracion_gestion"
   on configuracion for all
   using (get_my_role() in ('admin_total','admin_local'))
   with check (get_my_role() in ('admin_total','admin_local'));
+
+-- Cada vez que cambia la clave, se registra la fecha/hora automáticamente.
+-- Esto permite avisar a los navegadores que ya la habían verificado antes
+-- que la clave cambió y deben volver a ingresarla.
+create or replace function public.touch_clave_actualizada()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.clave_acceso is distinct from old.clave_acceso then
+    new.clave_actualizada = now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_touch_clave_actualizada on configuracion;
+create trigger trg_touch_clave_actualizada
+  before update on configuracion
+  for each row execute procedure public.touch_clave_actualizada();
 
 -- Función pública que compara el intento sin exponer la clave real
 -- (así nadie puede simplemente "leer" la clave llamando a una función).
@@ -306,6 +338,22 @@ as $$
 $$;
 
 grant execute on function public.verificar_clave_publica(text) to anon, authenticated;
+
+-- Función pública que solo expone CUÁNDO se actualizó la clave (nunca la
+-- clave misma). La vitrina pública la usa para detectar que el administrador
+-- cambió la clave y así pedirla de nuevo, incluso a navegadores que ya
+-- la habían verificado antes.
+create or replace function public.clave_estado_publica()
+returns timestamptz
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select clave_actualizada from configuracion where id = 1;
+$$;
+
+grant execute on function public.clave_estado_publica() to anon, authenticated;
 
 -- ---------------------------------------------------------
 -- 6c. Autoedición de nombre propio

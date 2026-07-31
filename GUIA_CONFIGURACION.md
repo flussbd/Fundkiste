@@ -113,7 +113,7 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 
 **`index.html` (público, sin login):**
 - Al entrar, primero pide elegir la sede/colegio — la recuerda para la próxima visita (hay un botón "Cambiar sede" en el encabezado).
-- Luego pide la clave de acceso (una sola vez por sede, la recuerda en el navegador).
+- Luego pide la clave de acceso (la recuerda en el navegador mientras siga siendo la misma clave). Si el administrador cambia la clave, la próxima vez que cualquier persona entre —incluso si ya la había puesto antes en ese mismo navegador— se le vuelve a pedir la clave nueva. Requiere haber ejecutado la versión más reciente de `setup.sql`.
 - Muestra los artículos disponibles de esa sede: foto, tipo, color, talla, si tiene nombre, lugar y fecha en que se encontró.
 - No muestra artículos ya retirados, ni quién los registró o retiró.
 - No permite registrar ni retirar artículos — solo consultar.

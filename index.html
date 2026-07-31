@@ -306,7 +306,7 @@
       <p class="empty-title" id="emptyTitle">La caja está vacía</p>
       <p id="emptySubtitle">No hay artículos disponibles que coincidan con tu búsqueda.</p>
     </div>
-    <p class="footer-version">Fundkiste v2.1.0 · Vista pública</p>
+    <p class="footer-version">Fundkiste v2.2.0 · Vista pública</p>
   </main>
 </div>
 
@@ -325,6 +325,7 @@
 
   const SEDE_STORAGE_KEY = 'fk_sede_elegida';
   const CLAVE_STORAGE_KEY = 'fk_clave_ok';
+  const CLAVE_VERSION_KEY = 'fk_clave_version';
 
   let sedes = [];
   let items = [];
@@ -363,14 +364,32 @@
       return;
     }
     localStorage.setItem(CLAVE_STORAGE_KEY, 'true');
+    try {
+      const { data: version } = await sb.rpc('clave_estado_publica');
+      if (version) localStorage.setItem(CLAVE_VERSION_KEY, version);
+    } catch (e) { /* si falla, igual dejamos pasar */ }
     mostrarApp();
   }
 
   $('#btnVerificarClave').addEventListener('click', verificarClave);
   $('#inputClaveAcceso').addEventListener('keydown', (e) => { if (e.key === 'Enter') verificarClave(); });
 
-  function claveYaVerificada() {
-    return localStorage.getItem(CLAVE_STORAGE_KEY) === 'true';
+  // Revisa si este navegador ya pasó la clave Y si sigue siendo la misma
+  // clave vigente (si el administrador la cambió, esto detecta el cambio
+  // y obliga a pedirla de nuevo, aunque ya se hubiera verificado antes).
+  async function claveYaVerificada() {
+    if (localStorage.getItem(CLAVE_STORAGE_KEY) !== 'true') return false;
+    try {
+      const { data: versionActual, error } = await sb.rpc('clave_estado_publica');
+      if (error || !versionActual) return true; // no se pudo comprobar: no bloquear al usuario
+      const versionGuardada = localStorage.getItem(CLAVE_VERSION_KEY);
+      if (versionGuardada && versionGuardada === versionActual) return true;
+      // La clave cambió (o nunca se guardó una versión): pedirla de nuevo.
+      localStorage.removeItem(CLAVE_STORAGE_KEY);
+      return false;
+    } catch (e) {
+      return true; // ante un error de red, no bloquear al usuario
+    }
   }
 
   async function boot() {
@@ -418,9 +437,9 @@
     });
   }
 
-  function irSiguientePaso() {
+  async function irSiguientePaso() {
     $('#sedeWrap').style.display = 'none';
-    if (claveYaVerificada()) {
+    if (await claveYaVerificada()) {
       mostrarApp();
     } else {
       $('#claveSubtitle').textContent = `Ingresa la clave de acceso para ver los objetos perdidos de ${sedeElegida.nombre}.`;
@@ -532,11 +551,7 @@
     if (e.target === $('#overlayDetail')) $('#overlayDetail').classList.remove('show');
   });
 
-  if (claveYaVerificada()) {
-    $('#claveWrap').style.display = 'none';
-    $('#sedeWrap').style.display = 'flex';
-    boot();
-  }
+  boot();
 </script>
 </body>
 </html>
