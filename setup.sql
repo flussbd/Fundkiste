@@ -205,6 +205,24 @@ begin
   end if;
 end $$;
 
+-- Registro de quién hizo el último cambio (edición o marcar retiro) al
+-- artículo, aparte de quién lo registró originalmente (registrado_por).
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'articulos' and column_name = 'modificado_por'
+  ) then
+    alter table articulos add column modificado_por text;
+  end if;
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'articulos' and column_name = 'modificado_en'
+  ) then
+    alter table articulos add column modificado_en timestamptz;
+  end if;
+end $$;
+
 create index if not exists idx_articulos_estado on articulos (estado);
 create index if not exists idx_articulos_categoria on articulos (categoria);
 create index if not exists idx_articulos_sede on articulos (sede_id);
