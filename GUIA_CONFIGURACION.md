@@ -70,6 +70,16 @@ Nota: la clave publishable está diseñada por Supabase para ir incluida en el c
 
 Estas mismas sedes aparecerán como botones para elegir en la página pública `index.html`.
 
+## Parte 5a: Puntos de acopio dentro de una sede (opcional)
+
+Si dentro de una misma sede hay más de un lugar donde llegan objetos perdidos (ej. una portería que solo recibe ropa y una sala de profesores donde llega de todo), puedes registrar esos lugares como "puntos de acopio". Es solo un dato informativo — no restringe qué categorías se pueden registrar en cada punto, y no se pide al público elegirlo en la vitrina (solo aparece como un dato más en la ficha del artículo, si se registró con uno).
+
+1. Entra a `admin.html` → botón **👥 Usuarios** (admin total) o **🔑 Acceso público** (admin local) → pestaña **Puntos**.
+2. Un administrador total primero elige la sede en el selector, y luego agrega los puntos de esa sede. Un administrador local ve directo los puntos de su propia sede (no necesita elegirla).
+3. Al registrar un artículo, aparece un selector "Punto de acopio (opcional)" con los puntos de esa sede. Se puede dejar en blanco si no aplica.
+
+Requiere haber ejecutado la versión más reciente de `setup.sql`.
+
 ## Parte 5b: Cambiar la clave de acceso a la vitrina pública
 
 Al ejecutar `setup.sql` se crea una clave por defecto (`cambiar-esta-clave`) que hay que cambiar antes de compartir el link con las familias:

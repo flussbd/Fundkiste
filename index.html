@@ -306,7 +306,7 @@
       <p class="empty-title" id="emptyTitle">La caja está vacía</p>
       <p id="emptySubtitle">No hay artículos disponibles que coincidan con tu búsqueda.</p>
     </div>
-    <p class="footer-version">Fundkiste v1.1 · Vista pública</p>
+    <p class="footer-version">Fundkiste v1.2 · Vista pública</p>
   </main>
 </div>
 
@@ -537,6 +537,7 @@
         <div><span>Talla</span>${escapeHtml(item.talla || '—')}</div>
         <div><span>¿Tiene nombre?</span>${item.tiene_nombre ? 'Sí: ' + escapeHtml(item.nombre_bordado || '') : 'No'}</div>
         <div><span>Lugar encontrado</span>${escapeHtml(item.lugar_encontrado || '—')}</div>
+        ${item.punto_nombre ? `<div><span>Punto de acopio</span>${escapeHtml(item.punto_nombre)}</div>` : ''}
         <div class="mono"><span>Fecha encontrado</span>${formatDate(item.fecha_encontrado)}</div>
       </div>
       <button class="btn" id="btnCloseDetail">Cerrar</button>

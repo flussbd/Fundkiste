@@ -532,7 +532,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.1</p>
+    <p class="footer-version">Fundkiste v1.2</p>
   </div>
 </div>
 
@@ -580,7 +580,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       <div>No hay artículos que coincidan.</div>
     </div>
-    <p class="footer-version">Fundkiste v1.1</p>
+    <p class="footer-version">Fundkiste v1.2</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -599,6 +599,13 @@
     <div class="field" id="wrapSedeForm">
       <label>Sede</label>
       <select id="inputSede"></select>
+    </div>
+
+    <div class="field">
+      <label>Punto de acopio (opcional)</label>
+      <select id="inputPunto">
+        <option value="">Sin punto específico</option>
+      </select>
     </div>
 
     <div class="field">
@@ -707,6 +714,7 @@
     <div class="admin-tabs">
       <button data-admintab="usuarios" class="active">Usuarios</button>
       <button data-admintab="sedes">Sedes</button>
+      <button data-admintab="puntos">Puntos</button>
       <button data-admintab="acceso">Acceso público</button>
     </div>
 
@@ -764,6 +772,23 @@
       <div id="sedesList"></div>
     </div>
 
+    <div id="adminPuntos" style="display:none;">
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;">
+        Los puntos de acopio son lugares dentro de una sede (ej. "Portería", "Gimnasio"). Son solo un dato informativo: no restringen qué se puede registrar ahí.
+      </p>
+      <div class="field" id="wrapPuntosSedeSelector" style="display:none;">
+        <label>Sede</label>
+        <select id="selectPuntosSede"></select>
+      </div>
+      <div class="row2" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;">
+          <input type="text" id="inputNuevoPunto" placeholder="Nombre del nuevo punto (ej: Portería)">
+        </div>
+        <button class="btn primary" id="btnAddPunto" style="flex:0 0 auto;padding:9px 16px;">Agregar</button>
+      </div>
+      <div id="puntosList"></div>
+    </div>
+
     <div id="adminAcceso" style="display:none;">
       <div class="info-note">
         Esta clave la piden a padres/estudiantes para entrar a la vitrina pública (<code>index.html</code>). Es una barrera simple contra visitas casuales, no una protección técnica real — no la uses para datos sensibles.
@@ -803,6 +828,7 @@
   // ---------- Estado global ----------
   let miPerfil = null;   // { id, email, nombre, rol, sede_id }
   let sedes = [];
+  let puntos = []; // todos los puntos de acopio (de todas las sedes visibles)
   let items = [];
   let currentTab = 'disponible';
   let currentPhotoFile = null;
@@ -831,6 +857,18 @@
   function sedeName(id) {
     const s = sedes.find(s => s.id === id);
     return s ? s.nombre : '—';
+  }
+
+  function puntoName(id) {
+    if (!id) return null;
+    const p = puntos.find(p => p.id === id);
+    return p ? p.nombre : null;
+  }
+
+  async function loadPuntosGlobal() {
+    const { data, error } = await sb.from('puntos').select('*');
+    if (error) { console.error(error); return; }
+    puntos = data || [];
   }
 
   // =========================================================
@@ -970,6 +1008,7 @@
     $('#btnAdd').style.display = (miPerfil.rol === 'admin_total' || miPerfil.rol === 'admin_local') ? 'flex' : 'none';
 
     await loadSedes();
+    await loadPuntosGlobal();
     setupSedeUI();
     await loadItems();
   }
@@ -1117,7 +1156,26 @@
     if (miPerfil.rol === 'admin_local' && miPerfil.sede_id) {
       $('#inputSede').value = miPerfil.sede_id;
     }
+    loadPuntosDelFormulario($('#inputSede').value);
   }
+
+  // Carga los puntos de acopio de la sede elegida en el formulario de
+  // agregar artículo (es un dato opcional, no obligatorio).
+  async function loadPuntosDelFormulario(sedeId) {
+    const sel = $('#inputPunto');
+    sel.innerHTML = '<option value="">Sin punto específico</option>';
+    if (!sedeId) return;
+    const { data, error } = await sb.from('puntos').select('*').eq('sede_id', sedeId).order('nombre');
+    if (error) { console.error(error); return; }
+    (data || []).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.nombre;
+      sel.appendChild(opt);
+    });
+  }
+
+  $('#inputSede').addEventListener('change', (e) => loadPuntosDelFormulario(e.target.value));
 
   $('#inputTieneNombre').addEventListener('change', (e) => {
     $('#wrapNombreBordado').style.display = e.target.checked ? 'block' : 'none';
@@ -1160,6 +1218,7 @@
 
       const record = {
         sede_id: sedeId,
+        punto_id: $('#inputPunto').value || null,
         categoria: $('#inputCategoria').value,
         tipo,
         color: $('#inputColor').value.trim() || null,
@@ -1212,6 +1271,7 @@
         <div><span>Talla</span>${escapeHtml(item.talla || '—')}</div>
         <div><span>¿Tiene nombre?</span>${item.tiene_nombre ? 'Sí: ' + escapeHtml(item.nombre_bordado || '') : 'No'}</div>
         <div><span>Lugar encontrado</span>${escapeHtml(item.lugar_encontrado || '—')}</div>
+        <div><span>Punto de acopio</span>${escapeHtml(puntoName(item.punto_id) || '—')}</div>
         <div><span>Fecha encontrado</span>${formatDate(item.fecha_encontrado)}</div>
         <div><span>Registrado por</span>${escapeHtml(item.registrado_por || '—')}</div>
       </div>
@@ -1322,21 +1382,30 @@
   $('#btnAdminPanel').addEventListener('click', () => {
     showOverlay('#overlayAdmin');
     if (miPerfil.rol === 'admin_local') {
-      // Un administrador local solo puede cambiar la clave de acceso pública,
-      // no gestionar usuarios ni sedes.
-      $('#adminPanelTitle').textContent = 'Acceso público';
-      $('.admin-tabs').style.display = 'none';
+      // Un administrador local gestiona los puntos de acopio de su propia
+      // sede y la clave de acceso pública, pero no usuarios ni sedes.
+      $('#adminPanelTitle').textContent = 'Panel del administrador local';
+      $('.admin-tabs').style.display = 'flex';
+      $('.admin-tabs button[data-admintab="usuarios"]').style.display = 'none';
+      $('.admin-tabs button[data-admintab="sedes"]').style.display = 'none';
+      $('.admin-tabs button[data-admintab="puntos"]').style.display = 'inline-block';
+      $('.admin-tabs button[data-admintab="acceso"]').style.display = 'inline-block';
+      $$('.admin-tabs button').forEach(b => b.classList.remove('active'));
+      $('.admin-tabs button[data-admintab="puntos"]').classList.add('active');
       $('#adminUsuarios').style.display = 'none';
       $('#adminSedes').style.display = 'none';
-      $('#adminAcceso').style.display = 'block';
-      loadClaveAcceso();
+      $('#adminPuntos').style.display = 'block';
+      $('#adminAcceso').style.display = 'none';
+      $('#wrapPuntosSedeSelector').style.display = 'none';
+      renderPuntosPanel(miPerfil.sede_id);
     } else {
       $('#adminPanelTitle').textContent = 'Administrar usuarios y sedes';
-      $('.admin-tabs').style.display = 'flex';
+      $$('.admin-tabs button').forEach(b => b.style.display = 'inline-block');
       $$('.admin-tabs button').forEach(b => b.classList.remove('active'));
       $('.admin-tabs button[data-admintab="usuarios"]').classList.add('active');
       $('#adminUsuarios').style.display = 'block';
       $('#adminSedes').style.display = 'none';
+      $('#adminPuntos').style.display = 'none';
       $('#adminAcceso').style.display = 'none';
       loadUsersPanel();
     }
@@ -1418,9 +1487,19 @@
       const tab = btn.dataset.admintab;
       $('#adminUsuarios').style.display = tab === 'usuarios' ? 'block' : 'none';
       $('#adminSedes').style.display = tab === 'sedes' ? 'block' : 'none';
+      $('#adminPuntos').style.display = tab === 'puntos' ? 'block' : 'none';
       $('#adminAcceso').style.display = tab === 'acceso' ? 'block' : 'none';
       if (tab === 'sedes') renderSedesPanel();
       if (tab === 'acceso') loadClaveAcceso();
+      if (tab === 'puntos') {
+        if (miPerfil.rol === 'admin_local') {
+          $('#wrapPuntosSedeSelector').style.display = 'none';
+          renderPuntosPanel(miPerfil.sede_id);
+        } else {
+          $('#wrapPuntosSedeSelector').style.display = 'block';
+          populateSelectPuntosSede();
+        }
+      }
     });
   });
 
@@ -1521,6 +1600,65 @@
     await loadSedes();
     renderSedesPanel();
     toast('Sede agregada');
+  });
+
+  // =========================================================
+  // PUNTOS DE ACOPIO (lugares dentro de una sede)
+  // =========================================================
+  function populateSelectPuntosSede() {
+    const sel = $('#selectPuntosSede');
+    sel.innerHTML = sedes.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+    if (sedes.length) {
+      renderPuntosPanel(sel.value);
+    } else {
+      $('#puntosList').innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">Primero agrega una sede en la pestaña "Sedes".</p>';
+    }
+  }
+
+  $('#selectPuntosSede').addEventListener('change', (e) => renderPuntosPanel(e.target.value));
+
+  async function renderPuntosPanel(sedeId) {
+    const list = $('#puntosList');
+    if (!sedeId) { list.innerHTML = ''; return; }
+    list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">Cargando...</p>';
+    const { data, error } = await sb.from('puntos').select('*').eq('sede_id', sedeId).order('nombre');
+    if (error) {
+      list.innerHTML = `<p style="font-size:13px;color:var(--warn);">Error: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+    const puntos = data || [];
+    if (!puntos.length) {
+      list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">Aún no hay puntos de acopio para esta sede.</p>';
+      return;
+    }
+    list.innerHTML = puntos.map(p => `
+      <div class="sede-row">
+        <span>${escapeHtml(p.nombre)}</span>
+        <button class="icon-btn btn-eliminar-punto" data-id="${p.id}" title="Eliminar punto">🗑</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('.btn-eliminar-punto').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = confirm('¿Eliminar este punto de acopio? Los artículos ya registrados con este punto no se eliminan, solo pierden esa referencia.');
+        if (!ok) return;
+        const { error: delErr } = await sb.from('puntos').delete().eq('id', btn.dataset.id);
+        if (delErr) { toast('Error: ' + delErr.message); return; }
+        toast('Punto eliminado');
+        renderPuntosPanel(sedeId);
+      });
+    });
+  }
+
+  $('#btnAddPunto').addEventListener('click', async () => {
+    const nombre = $('#inputNuevoPunto').value.trim();
+    if (!nombre) { toast('Escribe un nombre de punto'); return; }
+    const sedeId = miPerfil.rol === 'admin_local' ? miPerfil.sede_id : $('#selectPuntosSede').value;
+    if (!sedeId) { toast('Selecciona una sede'); return; }
+    const { error } = await sb.from('puntos').insert({ sede_id: sedeId, nombre });
+    if (error) { toast('Error: ' + error.message); return; }
+    $('#inputNuevoPunto').value = '';
+    renderPuntosPanel(sedeId);
+    toast('Punto agregado');
   });
 
   // =========================================================

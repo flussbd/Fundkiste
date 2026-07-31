@@ -71,6 +71,43 @@ as $$
 $$;
 
 -- ---------------------------------------------------------
+-- 2b. Puntos de acopio (lugares dentro de una sede, ej. "Portería",
+-- "Gimnasio"). Cada sede tiene su propia lista de puntos.
+-- Es solo informativo: no restringe qué categorías se pueden
+-- registrar en cada punto.
+-- ---------------------------------------------------------
+create table if not exists puntos (
+  id uuid primary key default gen_random_uuid(),
+  sede_id uuid not null references sedes(id) on delete cascade,
+  nombre text not null,
+  created_at timestamptz not null default now(),
+  unique (sede_id, nombre)
+);
+
+alter table puntos enable row level security;
+
+-- Cualquier usuario autenticado puede leer los puntos (para elegir
+-- uno al registrar un artículo).
+drop policy if exists "puntos_select_autenticados" on puntos;
+create policy "puntos_select_autenticados"
+  on puntos for select
+  using (auth.role() = 'authenticated');
+
+-- admin_total gestiona puntos de cualquier sede;
+-- admin_local solo los de su propia sede.
+drop policy if exists "puntos_gestion" on puntos;
+create policy "puntos_gestion"
+  on puntos for all
+  using (
+    get_my_role() = 'admin_total'
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+  )
+  with check (
+    get_my_role() = 'admin_total'
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+  );
+
+-- ---------------------------------------------------------
 -- 3. Artículos perdidos
 -- ---------------------------------------------------------
 create table if not exists articulos (
@@ -105,9 +142,21 @@ begin
   end if;
 end $$;
 
+-- Si la tabla ya existía de una versión anterior sin punto de acopio:
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'articulos' and column_name = 'punto_id'
+  ) then
+    alter table articulos add column punto_id uuid references puntos(id) on delete set null;
+  end if;
+end $$;
+
 create index if not exists idx_articulos_estado on articulos (estado);
 create index if not exists idx_articulos_categoria on articulos (categoria);
 create index if not exists idx_articulos_sede on articulos (sede_id);
+create index if not exists idx_articulos_punto on articulos (punto_id);
 create index if not exists idx_articulos_fecha on articulos (fecha_encontrado desc);
 
 -- ---------------------------------------------------------
@@ -221,7 +270,11 @@ create policy "fotos_subida_autorizada"
 -- NO incluye quién retiró un artículo, su curso, ni quién lo registró,
 -- y solo muestra artículos con estado 'disponible' (los retirados no
 -- se listan públicamente).
-create or replace function public.articulos_publicos()
+-- Se elimina primero porque el tipo de retorno cambió (se agregó punto_nombre)
+-- y Postgres no permite cambiar el tipo de retorno con "create or replace".
+drop function if exists public.articulos_publicos();
+
+create function public.articulos_publicos()
 returns table (
   id uuid,
   sede_nombre text,
@@ -233,6 +286,7 @@ returns table (
   nombre_bordado text,
   foto_url text,
   lugar_encontrado text,
+  punto_nombre text,
   fecha_encontrado date
 )
 language sql
@@ -242,9 +296,11 @@ set search_path = public
 as $$
   select
     a.id, s.nombre as sede_nombre, a.categoria, a.tipo, a.color, a.talla,
-    a.tiene_nombre, a.nombre_bordado, a.foto_url, a.lugar_encontrado, a.fecha_encontrado
+    a.tiene_nombre, a.nombre_bordado, a.foto_url, a.lugar_encontrado,
+    p.nombre as punto_nombre, a.fecha_encontrado
   from articulos a
   join sedes s on s.id = a.sede_id
+  left join puntos p on p.id = a.punto_id
   where a.estado = 'disponible'
   order by a.created_at desc;
 $$;
