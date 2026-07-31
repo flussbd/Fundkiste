@@ -532,7 +532,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.3</p>
+    <p class="footer-version">Fundkiste v1.6</p>
   </div>
 </div>
 
@@ -580,7 +580,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       <div>No hay artículos que coincidan.</div>
     </div>
-    <p class="footer-version">Fundkiste v1.3</p>
+    <p class="footer-version">Fundkiste v1.6</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -595,6 +595,7 @@
       <img id="photoPreview" style="display:none;">
       <input type="file" id="inputPhoto" accept="image/*" capture="environment">
     </label>
+    <div id="photoWeightLabel" style="font-size:11.5px;color:var(--ink-soft);margin:4px 0 0;display:none;"></div>
 
     <div class="field" id="wrapSedeForm">
       <label>Sede</label>
@@ -602,9 +603,9 @@
     </div>
 
     <div class="field">
-      <label>Punto de acopio (opcional)</label>
+      <label>Punto de acopio</label>
       <select id="inputPunto">
-        <option value="">Sin punto específico</option>
+        <option value="">Elige primero una sede</option>
       </select>
     </div>
 
@@ -1177,6 +1178,7 @@
     $('#photoPlaceholder').style.display = 'block';
     $('#inputPhoto').value = '';
     currentPhotoFile = null;
+    $('#photoWeightLabel').style.display = 'none';
     if (miPerfil.rol === 'admin_local' && miPerfil.sede_id) {
       $('#inputSede').value = miPerfil.sede_id;
     }
@@ -1202,6 +1204,7 @@
     $('#inputDescripcion').value = item.descripcion || '';
     currentPhotoFile = null;
     $('#inputPhoto').value = '';
+    $('#photoWeightLabel').style.display = 'none';
     if (item.foto_url) {
       $('#photoPreview').src = item.foto_url;
       $('#photoPreview').style.display = 'block';
@@ -1216,20 +1219,31 @@
     showOverlay('#overlayAdd');
   }
 
-  // Carga los puntos de acopio de la sede elegida en el formulario de
-  // agregar artículo (es un dato opcional, no obligatorio).
+  // Puntos de acopio disponibles para la sede actualmente elegida en el
+  // formulario de agregar/editar. Se usa para saber si corresponde exigir
+  // elegir uno (solo si la sede tiene puntos configurados).
+  let puntosDisponiblesForm = [];
+
   async function loadPuntosDelFormulario(sedeId) {
     const sel = $('#inputPunto');
-    sel.innerHTML = '<option value="">Sin punto específico</option>';
-    if (!sedeId) return;
+    puntosDisponiblesForm = [];
+    if (!sedeId) {
+      sel.innerHTML = '<option value="">Elige primero una sede</option>';
+      return;
+    }
     const { data, error } = await sb.from('puntos').select('*').eq('sede_id', sedeId).order('nombre');
-    if (error) { console.error(error); return; }
-    (data || []).forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.nombre;
-      sel.appendChild(opt);
-    });
+    if (error) {
+      console.error(error);
+      sel.innerHTML = '<option value="">No se pudieron cargar los puntos</option>';
+      return;
+    }
+    puntosDisponiblesForm = data || [];
+    if (!puntosDisponiblesForm.length) {
+      sel.innerHTML = '<option value="">Esta sede aún no tiene puntos configurados</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Selecciona un punto de acopio</option>' +
+      puntosDisponiblesForm.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
   }
 
   $('#inputSede').addEventListener('change', (e) => loadPuntosDelFormulario(e.target.value));
@@ -1238,17 +1252,69 @@
     $('#wrapNombreBordado').style.display = e.target.checked ? 'block' : 'none';
   });
 
-  $('#inputPhoto').addEventListener('change', (e) => {
+  // Reduce el tamaño de la foto antes de subirla: la redibuja en un canvas
+  // limitando el lado más largo a maxDim píxeles y la comprime como JPEG.
+  // Esto baja bastante el peso de las fotos tomadas con el celular, que
+  // suelen venir en varios MB, sin necesidad de un servidor aparte.
+  function comprimirImagen(file, maxDim = 1600, calidad = 0.75) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (!blob) { resolve(file); return; } // si algo falla, usar el original
+          resolve(new File([blob], 'foto.jpg', { type: 'image/jpeg' }));
+        }, 'image/jpeg', calidad);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); }; // si falla, usar el original
+      img.src = url;
+    });
+  }
+
+  function formatPeso(bytes) {
+    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return Math.round(bytes / 1024) + ' KB';
+  }
+
+  function mostrarPesoFoto(bytes) {
+    const label = $('#photoWeightLabel');
+    if (!bytes) { label.style.display = 'none'; return; }
+    label.textContent = `Peso de la foto: ${formatPeso(bytes)}`;
+    label.style.display = 'block';
+  }
+
+  $('#inputPhoto').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    currentPhotoFile = file;
+    $('#photoPlaceholder').textContent = '⏳ Procesando foto...';
+    $('#photoPlaceholder').style.display = 'block';
+    $('#photoPreview').style.display = 'none';
+    mostrarPesoFoto(0);
+    currentPhotoFile = await comprimirImagen(file);
+    $('#photoPlaceholder').textContent = '📷 Tomar o subir foto (opcional)';
     const reader = new FileReader();
     reader.onload = (ev) => {
       $('#photoPreview').src = ev.target.result;
       $('#photoPreview').style.display = 'block';
       $('#photoPlaceholder').style.display = 'none';
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(currentPhotoFile);
+    mostrarPesoFoto(currentPhotoFile.size);
   });
 
   $('#btnSaveAdd').addEventListener('click', async () => {
@@ -1260,6 +1326,12 @@
     if (!tipo) { toast('Indica el tipo de artículo'); return; }
     if (!fecha) { toast('Indica la fecha en que se encontró'); return; }
     if (!sedeId) { toast('Selecciona una sede'); return; }
+    // El punto de acopio es obligatorio solo si la sede tiene puntos
+    // configurados; si aún no tiene ninguno, no se puede exigir.
+    if (puntosDisponiblesForm.length && !$('#inputPunto').value) {
+      toast('Selecciona un punto de acopio');
+      return;
+    }
 
     const btn = $('#btnSaveAdd');
     btn.disabled = true;

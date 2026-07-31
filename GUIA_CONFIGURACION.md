@@ -76,7 +76,7 @@ Si dentro de una misma sede hay más de un lugar donde llegan objetos perdidos (
 
 1. Entra a `admin.html` → botón **👥 Usuarios** (admin total) o **🔑 Acceso público** (admin local) → pestaña **Puntos**.
 2. Un administrador total primero elige la sede en el selector, y luego agrega los puntos de esa sede. Un administrador local ve directo los puntos de su propia sede (no necesita elegirla).
-3. Al registrar un artículo, aparece un selector "Punto de acopio (opcional)" con los puntos de esa sede. Se puede dejar en blanco si no aplica.
+3. Al registrar un artículo, aparece un selector "Punto de acopio" con los puntos de esa sede. Es obligatorio elegir uno **si la sede ya tiene puntos creados**; si la sede todavía no tiene ninguno configurado, no se exige (para no bloquear el registro de artículos mientras se configuran los puntos).
 
 Requiere haber ejecutado la versión más reciente de `setup.sql`.
 
