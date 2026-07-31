@@ -80,6 +80,14 @@ Si dentro de una misma sede hay más de un lugar donde llegan objetos perdidos (
 
 Requiere haber ejecutado la versión más reciente de `setup.sql`.
 
+### Restringir qué puntos puede gestionar un administrador local (opcional)
+
+Por defecto, un administrador local puede crear, editar y eliminar artículos de cualquier punto dentro de su propia sede. Si prefieres que solo pueda trabajar con puntos específicos (ej. una persona a cargo solo de la portería, no del gimnasio), el administrador total puede restringirlo:
+
+1. Entra a `admin.html` con una cuenta de administrador total → botón **👥 Usuarios** → pestaña **Usuarios**.
+2. En la fila del administrador local correspondiente (si su sede ya tiene puntos creados), aparece una sección "Puntos permitidos" con casillas para cada punto de su sede.
+3. Marca los puntos que puede gestionar y presiona **Guardar puntos permitidos**. Si no marcas ninguno, no hay restricción (puede gestionar todos los puntos de su sede, como si esta sección no existiera).
+
 ## Parte 5b: Cambiar la clave de acceso a la vitrina pública
 
 Al ejecutar `setup.sql` se crea una clave por defecto (`cambiar-esta-clave`) que hay que cambiar antes de compartir el link con las familias:
@@ -132,7 +140,8 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 - **Registrar un artículo**: botón `+` (solo administradores). Foto opcional, categoría, tipo, color, talla, si tiene nombre bordado, lugar y fecha. Un administrador local registra directo en su sede; un administrador total elige la sede.
 - **Buscar/filtrar**: búsqueda por texto, filtro por categoría, filtro por sede (si el usuario ve más de una), pestañas Disponibles / Retirados / Todos.
 - **Marcar como retirado**: en el detalle de un artículo disponible, los administradores registran nombre, curso y fecha de quien lo retira. Los usuarios de solo lectura ven el detalle pero no este formulario.
-- **Eliminar un artículo**: en el detalle de cualquier artículo, botón "Eliminar artículo" (pide confirmación). Un administrador total puede eliminar de cualquier sede; un administrador local solo de su propia sede. Los usuarios de solo lectura no ven este botón. Si ya tenías la base de datos creada de antes, debes volver a ejecutar `setup.sql` para que el administrador local quede habilitado para eliminar (antes solo lo permitía admin_total).
+- **Editar la información de un artículo**: en el detalle de cualquier artículo, botón "Editar información". Solo lo ve un administrador local (ni el administrador total ni los usuarios de solo lectura tienen este botón), y solo si el punto de acopio del artículo está entre sus puntos permitidos (ver "Restringir qué puntos puede gestionar un administrador local" más arriba).
+- **Eliminar un artículo**: en el detalle de cualquier artículo, botón "Eliminar artículo" (pide confirmación). Un administrador total puede eliminar de cualquier sede; un administrador local solo de su propia sede (y de los puntos que tenga permitidos, si se le configuró esa restricción). Los usuarios de solo lectura no ven este botón. Si ya tenías la base de datos creada de antes, debes volver a ejecutar `setup.sql` para que el administrador local quede habilitado para eliminar (antes solo lo permitía admin_total).
 - **Mi cuenta**: cualquier usuario logueado (sin importar su rol) puede cambiar su propio nombre y su contraseña desde el botón "⚙ Mi cuenta" en el encabezado. No puede cambiar su propio rol ni sede desde ahí — eso lo sigue controlando solo el administrador total (o local, para la clave de acceso pública).
 
 ## Notas importantes

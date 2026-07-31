@@ -108,6 +108,58 @@ create policy "puntos_gestion"
   );
 
 -- ---------------------------------------------------------
+-- 2c. Restricción opcional: qué puntos puede gestionar cada
+-- administrador local (crear/editar/eliminar artículos).
+-- Si un administrador local NO tiene ninguna fila aquí, no tiene
+-- restricción: puede gestionar cualquier punto de su propia sede
+-- (comportamiento igual al de antes de esta tabla). Si tiene al
+-- menos una fila, queda limitado solo a esos puntos.
+-- ---------------------------------------------------------
+create table if not exists admin_puntos_permitidos (
+  perfil_id uuid not null references perfiles(id) on delete cascade,
+  punto_id uuid not null references puntos(id) on delete cascade,
+  primary key (perfil_id, punto_id)
+);
+
+alter table admin_puntos_permitidos enable row level security;
+
+-- El propio usuario puede ver sus asignaciones (para saber qué puntos
+-- le aparecen al registrar); admin_total puede ver todas.
+drop policy if exists "admin_puntos_select" on admin_puntos_permitidos;
+create policy "admin_puntos_select"
+  on admin_puntos_permitidos for select
+  using (get_my_role() = 'admin_total' or perfil_id = auth.uid());
+
+-- Solo admin_total asigna o quita puntos permitidos.
+drop policy if exists "admin_puntos_gestion" on admin_puntos_permitidos;
+create policy "admin_puntos_gestion"
+  on admin_puntos_permitidos for all
+  using (get_my_role() = 'admin_total')
+  with check (get_my_role() = 'admin_total');
+
+-- Función auxiliar: ¿puede el usuario actual gestionar artículos de
+-- este punto? Devuelve true si no tiene restricciones configuradas,
+-- si el artículo no tiene punto asignado, o si el punto está en su
+-- lista de puntos permitidos.
+create or replace function public.punto_permitido(p_punto_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select
+    p_punto_id is null
+    or not exists (select 1 from admin_puntos_permitidos where perfil_id = auth.uid())
+    or exists (
+      select 1 from admin_puntos_permitidos
+      where perfil_id = auth.uid() and punto_id = p_punto_id
+    );
+$$;
+
+grant execute on function public.punto_permitido(uuid) to authenticated;
+
+-- ---------------------------------------------------------
 -- 3. Artículos perdidos
 -- ---------------------------------------------------------
 create table if not exists articulos (
@@ -215,7 +267,7 @@ create policy "articulos_insert"
   on articulos for insert
   with check (
     get_my_role() = 'admin_total'
-    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede() and punto_permitido(punto_id))
   );
 
 drop policy if exists "articulos_update" on articulos;
@@ -223,22 +275,23 @@ create policy "articulos_update"
   on articulos for update
   using (
     get_my_role() = 'admin_total'
-    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede() and punto_permitido(punto_id))
   )
   with check (
     get_my_role() = 'admin_total'
-    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede() and punto_permitido(punto_id))
   );
 
 -- Artículos: eliminar
 -- - admin_total: cualquier sede
--- - admin_local: solo artículos de su propia sede
+-- - admin_local: solo artículos de su propia sede, y si tiene puntos
+--   permitidos configurados, solo de esos puntos
 drop policy if exists "articulos_delete" on articulos;
 create policy "articulos_delete"
   on articulos for delete
   using (
     get_my_role() = 'admin_total'
-    or (get_my_role() = 'admin_local' and sede_id = get_my_sede())
+    or (get_my_role() = 'admin_local' and sede_id = get_my_sede() and punto_permitido(punto_id))
   );
 
 -- ---------------------------------------------------------

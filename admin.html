@@ -532,7 +532,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.2</p>
+    <p class="footer-version">Fundkiste v1.3</p>
   </div>
 </div>
 
@@ -580,7 +580,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       <div>No hay artículos que coincidan.</div>
     </div>
-    <p class="footer-version">Fundkiste v1.2</p>
+    <p class="footer-version">Fundkiste v1.3</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -589,7 +589,7 @@
 <!-- Overlay: nuevo artículo -->
 <div class="overlay" id="overlayAdd">
   <div class="sheet">
-    <h2>Registrar artículo encontrado</h2>
+    <h2 id="addFormTitle">Registrar artículo encontrado</h2>
     <label class="photo-input" id="photoInputWrap">
       <span id="photoPlaceholder">📷 Tomar o subir foto (opcional)</span>
       <img id="photoPreview" style="display:none;">
@@ -829,7 +829,9 @@
   let miPerfil = null;   // { id, email, nombre, rol, sede_id }
   let sedes = [];
   let puntos = []; // todos los puntos de acopio (de todas las sedes visibles)
+  let misPuntosPermitidos = null; // null = sin restricción; array de ids = restringido a esos puntos
   let items = [];
+  let editingItemId = null; // id del artículo en edición, o null si se está registrando uno nuevo
   let currentTab = 'disponible';
   let currentPhotoFile = null;
 
@@ -869,6 +871,24 @@
     const { data, error } = await sb.from('puntos').select('*');
     if (error) { console.error(error); return; }
     puntos = data || [];
+  }
+
+  // Carga mis propios puntos permitidos (solo aplica a admin_local).
+  // Si la lista queda vacía, significa que no tiene restricción.
+  async function loadMisPuntosPermitidos() {
+    if (miPerfil.rol !== 'admin_local') { misPuntosPermitidos = null; return; }
+    const { data, error } = await sb.from('admin_puntos_permitidos').select('punto_id').eq('perfil_id', miPerfil.id);
+    if (error) { console.error(error); misPuntosPermitidos = null; return; }
+    misPuntosPermitidos = (data && data.length) ? data.map(d => d.punto_id) : null;
+  }
+
+  // ¿Puedo (el usuario actual) crear/editar/eliminar un artículo de este punto?
+  function puedoGestionarPunto(puntoId) {
+    if (miPerfil.rol === 'admin_total') return true;
+    if (miPerfil.rol !== 'admin_local') return false;
+    if (!misPuntosPermitidos) return true; // sin restricción configurada
+    if (!puntoId) return true; // artículo sin punto asignado: no se restringe
+    return misPuntosPermitidos.includes(puntoId);
   }
 
   // =========================================================
@@ -1009,6 +1029,7 @@
 
     await loadSedes();
     await loadPuntosGlobal();
+    await loadMisPuntosPermitidos();
     setupSedeUI();
     await loadItems();
   }
@@ -1133,7 +1154,10 @@
   // AGREGAR ARTÍCULO
   // =========================================================
   $('#btnAdd').addEventListener('click', () => {
+    editingItemId = null;
     resetAddForm();
+    $('#addFormTitle').textContent = 'Registrar artículo encontrado';
+    $('#btnSaveAdd').textContent = 'Guardar artículo';
     showOverlay('#overlayAdd');
   });
   $('#btnCancelAdd').addEventListener('click', () => hideOverlay('#overlayAdd'));
@@ -1157,6 +1181,39 @@
       $('#inputSede').value = miPerfil.sede_id;
     }
     loadPuntosDelFormulario($('#inputSede').value);
+  }
+
+  // Abre el mismo formulario de "agregar" pero prellenado, para editar
+  // un artículo existente. Solo se usa para admin_local (ver openDetail).
+  async function abrirEdicion(item) {
+    editingItemId = item.id;
+    $('#inputSede').value = item.sede_id;
+    await loadPuntosDelFormulario(item.sede_id);
+    $('#inputPunto').value = item.punto_id || '';
+    $('#inputCategoria').value = item.categoria;
+    $('#inputTipo').value = item.tipo || '';
+    $('#inputColor').value = item.color || '';
+    $('#inputTalla').value = item.talla || '';
+    $('#inputFechaEncontrado').value = item.fecha_encontrado;
+    $('#inputTieneNombre').checked = !!item.tiene_nombre;
+    $('#inputNombreBordado').value = item.nombre_bordado || '';
+    $('#wrapNombreBordado').style.display = item.tiene_nombre ? 'block' : 'none';
+    $('#inputLugar').value = item.lugar_encontrado || '';
+    $('#inputDescripcion').value = item.descripcion || '';
+    currentPhotoFile = null;
+    $('#inputPhoto').value = '';
+    if (item.foto_url) {
+      $('#photoPreview').src = item.foto_url;
+      $('#photoPreview').style.display = 'block';
+      $('#photoPlaceholder').style.display = 'none';
+    } else {
+      $('#photoPreview').style.display = 'none';
+      $('#photoPlaceholder').style.display = 'block';
+    }
+    $('#addFormTitle').textContent = 'Editar artículo';
+    $('#btnSaveAdd').textContent = 'Guardar cambios';
+    hideOverlay('#overlayDetail');
+    showOverlay('#overlayAdd');
   }
 
   // Carga los puntos de acopio de la sede elegida en el formulario de
@@ -1197,6 +1254,8 @@
   $('#btnSaveAdd').addEventListener('click', async () => {
     const tipo = $('#inputTipo').value.trim();
     const fecha = $('#inputFechaEncontrado').value;
+    const editando = !!editingItemId;
+    const itemOriginal = editando ? items.find(i => i.id === editingItemId) : null;
     const sedeId = miPerfil.rol === 'admin_local' ? miPerfil.sede_id : $('#inputSede').value;
     if (!tipo) { toast('Indica el tipo de artículo'); return; }
     if (!fecha) { toast('Indica la fecha en que se encontró'); return; }
@@ -1207,7 +1266,7 @@
     btn.innerHTML = '<span class="spinner"></span> Guardando...';
 
     try {
-      let fotoUrl = null;
+      let fotoUrl = editando ? (itemOriginal?.foto_url || null) : null;
       if (currentPhotoFile) {
         const path = `${Date.now()}_${currentPhotoFile.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
         const { error: upErr } = await sb.storage.from('fotos').upload(path, currentPhotoFile);
@@ -1228,15 +1287,25 @@
         descripcion: $('#inputDescripcion').value.trim() || null,
         foto_url: fotoUrl,
         lugar_encontrado: $('#inputLugar').value.trim() || null,
-        fecha_encontrado: fecha,
-        registrado_por: miPerfil.nombre || miPerfil.email,
-        estado: 'disponible'
+        fecha_encontrado: fecha
       };
 
-      const { error } = await sb.from('articulos').insert(record);
-      if (error) throw error;
+      if (editando) {
+        const { data, error } = await sb.from('articulos').update(record).eq('id', editingItemId).select();
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error('No se guardó nada. Probablemente no tienes permiso para editar este punto (revisa "Puntos permitidos" con el administrador total).');
+        }
+        toast('Artículo actualizado');
+      } else {
+        record.registrado_por = miPerfil.nombre || miPerfil.email;
+        record.estado = 'disponible';
+        const { error } = await sb.from('articulos').insert(record);
+        if (error) throw error;
+        toast('Artículo registrado');
+      }
 
-      toast('Artículo registrado');
+      editingItemId = null;
       hideOverlay('#overlayAdd');
       loadItems();
     } catch (err) {
@@ -1244,7 +1313,7 @@
       toast('Error al guardar: ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Guardar artículo';
+      btn.textContent = editingItemId ? 'Guardar cambios' : 'Guardar artículo';
     }
   });
 
@@ -1257,6 +1326,7 @@
     const sheet = $('#detailSheet');
     const disponible = item.estado !== 'retirado';
     const puedeGestionar = miPerfil.rol === 'admin_total' || miPerfil.rol === 'admin_local';
+    const puedeEditarInfo = miPerfil.rol === 'admin_local' && puedoGestionarPunto(item.punto_id);
 
     sheet.innerHTML = `
       <h2>${escapeHtml(item.tipo)}</h2>
@@ -1302,10 +1372,11 @@
           <button class="btn ghost" id="btnCloseDetail">Cerrar</button>
         </div>
       `}
-      ${puedeGestionar ? `
+      ${puedeEditarInfo || puedeGestionar ? `
         <hr class="divider">
         <div class="actions">
-          <button class="btn danger-outline" id="btnEliminarArticulo" style="width:100%;">Eliminar artículo</button>
+          ${puedeEditarInfo ? `<button class="btn ghost" id="btnEditarArticulo" style="width:100%;">Editar información</button>` : ''}
+          ${puedeGestionar ? `<button class="btn danger-outline" id="btnEliminarArticulo" style="width:100%;">Eliminar artículo</button>` : ''}
         </div>
       ` : ''}
     `;
@@ -1313,6 +1384,9 @@
     $('#btnCloseDetail').addEventListener('click', () => hideOverlay('#overlayDetail'));
     if (disponible && puedeGestionar) {
       $('#btnConfirmRetiro').addEventListener('click', () => confirmRetiro(item.id));
+    }
+    if (puedeEditarInfo) {
+      $('#btnEditarArticulo').addEventListener('click', () => abrirEdicion(item));
     }
     if (puedeGestionar) {
       $('#btnEliminarArticulo').addEventListener('click', () => eliminarArticulo(item.id));
@@ -1543,11 +1617,18 @@
   async function loadUsersPanel() {
     const { data, error } = await sb.from('perfiles').select('*').order('email');
     if (error) { toast('Error: ' + error.message); return; }
+
+    const { data: asignData, error: asignError } = await sb.from('admin_puntos_permitidos').select('*');
+    if (asignError) console.error(asignError);
+    const asignaciones = asignData || [];
+
     const list = $('#usersList');
     list.innerHTML = '';
     (data || []).forEach(p => {
       const row = document.createElement('div');
       row.className = 'user-row';
+      const puntosDeSuSede = p.sede_id ? puntos.filter(pt => pt.sede_id === p.sede_id) : [];
+      const misAsignaciones = asignaciones.filter(a => a.perfil_id === p.id).map(a => a.punto_id);
       row.innerHTML = `
         <div class="email">${escapeHtml(p.email || p.id)}</div>
         <div class="fields-inline">
@@ -1563,6 +1644,18 @@
           </select>
         </div>
         <button class="save-row">Guardar</button>
+        ${p.rol === 'admin_local' && puntosDeSuSede.length ? `
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
+            <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;">Puntos permitidos para crear/editar/eliminar artículos (si no marcas ninguno, puede gestionar todos los puntos de su sede):</p>
+            ${puntosDeSuSede.map(pt => `
+              <label style="display:inline-flex;align-items:center;gap:5px;margin:0 12px 6px 0;font-size:12.5px;">
+                <input type="checkbox" class="chk-punto-permitido" value="${pt.id}" ${misAsignaciones.includes(pt.id) ? 'checked' : ''}>
+                ${escapeHtml(pt.nombre)}
+              </label>
+            `).join('')}
+            <button class="icon-btn btn-guardar-puntos-permitidos" style="display:block;margin-top:4px;">Guardar puntos permitidos</button>
+          </div>
+        ` : ''}
       `;
       row.querySelector('.save-row').addEventListener('click', async () => {
         const nombre = row.querySelector('.ur-nombre').value.trim();
@@ -1575,7 +1668,35 @@
         }).eq('id', p.id);
         if (updErr) { toast('Error: ' + updErr.message); return; }
         toast('Usuario actualizado');
+        loadUsersPanel();
       });
+
+      const btnGuardarPuntos = row.querySelector('.btn-guardar-puntos-permitidos');
+      if (btnGuardarPuntos) {
+        btnGuardarPuntos.addEventListener('click', async () => {
+          const seleccionados = Array.from(row.querySelectorAll('.chk-punto-permitido:checked')).map(chk => chk.value);
+          btnGuardarPuntos.disabled = true;
+          btnGuardarPuntos.textContent = 'Guardando...';
+          try {
+            const { error: delErr } = await sb.from('admin_puntos_permitidos').delete().eq('perfil_id', p.id);
+            if (delErr) throw delErr;
+            if (seleccionados.length) {
+              const { error: insErr } = await sb.from('admin_puntos_permitidos').insert(
+                seleccionados.map(puntoId => ({ perfil_id: p.id, punto_id: puntoId }))
+              );
+              if (insErr) throw insErr;
+            }
+            toast('Puntos permitidos actualizados');
+          } catch (err) {
+            console.error(err);
+            toast('Error: ' + err.message);
+          } finally {
+            btnGuardarPuntos.disabled = false;
+            btnGuardarPuntos.textContent = 'Guardar puntos permitidos';
+          }
+        });
+      }
+
       list.appendChild(row);
     });
   }
