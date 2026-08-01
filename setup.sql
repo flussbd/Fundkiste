@@ -223,6 +223,18 @@ begin
   end if;
 end $$;
 
+-- Peso (en bytes) de la foto ya comprimida, guardado para poder mostrarlo
+-- siempre en el detalle, no solo justo al subirla.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'articulos' and column_name = 'foto_peso_bytes'
+  ) then
+    alter table articulos add column foto_peso_bytes integer;
+  end if;
+end $$;
+
 create index if not exists idx_articulos_estado on articulos (estado);
 create index if not exists idx_articulos_categoria on articulos (categoria);
 create index if not exists idx_articulos_sede on articulos (sede_id);
