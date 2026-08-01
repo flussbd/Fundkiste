@@ -146,6 +146,7 @@ Si no desplegaste la función (Parte 6), puedes seguir creando cuentas manualmen
 - **Mi cuenta**: cualquier usuario logueado (sin importar su rol) puede cambiar su propio nombre y su contraseña desde el botón "⚙ Mi cuenta" en el encabezado. No puede cambiar su propio rol ni sede desde ahí — eso lo sigue controlando solo el administrador total (o local, para la clave de acceso pública).
 - **Quién registró y quién modificó**: en el detalle de cualquier artículo, tanto el administrador total como el local ven "Registrado por" (quién lo creó) y, si corresponde, "Última modificación" (quién editó la información o marcó el retiro por última vez, y cuándo). Este dato no aparece en la vitrina pública (`index.html`), solo en `admin.html`.
 - **Peso de la foto**: al lado de la foto en el detalle de un artículo se muestra su peso (ej. "Peso de la foto: 180 KB"), guardado desde que se subió — no solo al momento de subirla, sino cada vez que se vuelve a abrir el artículo.
+- **Historial completo de cambios**: en el detalle de un artículo, botón "🕘 Ver historial de cambios" muestra una lista cronológica de todo lo que le ha pasado al artículo — cuándo se registró, cada vez que se editó (con qué campos cambiaron, ej. "Color: Azul → Rojo") y cuándo se marcó el retiro, indicando siempre quién lo hizo. Es un registro permanente: nadie, ni siquiera el administrador total, puede editarlo o borrarlo desde la app.
 
 **`dashboard.html` (solo administradores):**
 - Se abre desde el botón "📊 Dashboard" en `admin.html`, o entrando directo a la URL si ya iniciaste sesión antes.

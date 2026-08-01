@@ -532,7 +532,7 @@
     <p style="text-align:center;margin-top:10px;">
       <a href="index.html" style="font-size:12.5px;color:var(--accent);">¿Solo buscas si algo tuyo está en objetos perdidos? Míralo sin iniciar sesión →</a>
     </p>
-    <p class="footer-version">Fundkiste v1.9</p>
+    <p class="footer-version">Fundkiste v2.0</p>
   </div>
 </div>
 
@@ -581,7 +581,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       <div>No hay artículos que coincidan.</div>
     </div>
-    <p class="footer-version">Fundkiste v1.9</p>
+    <p class="footer-version">Fundkiste v2.0</p>
   </main>
 
   <button class="fab" id="btnAdd" title="Registrar artículo" style="display:none;">+</button>
@@ -867,6 +867,109 @@
     if (!id) return null;
     const p = puntos.find(p => p.id === id);
     return p ? p.nombre : null;
+  }
+
+  // =========================================================
+  // HISTORIAL DE CAMBIOS
+  // =========================================================
+  const CAMPOS_LABELS = {
+    categoria: 'Categoría',
+    tipo: 'Tipo',
+    color: 'Color',
+    talla: 'Talla',
+    tiene_nombre: '¿Tiene nombre?',
+    nombre_bordado: 'Nombre bordado',
+    descripcion: 'Detalles',
+    lugar_encontrado: 'Lugar encontrado',
+    fecha_encontrado: 'Fecha encontrado',
+    punto_id: 'Punto de acopio'
+  };
+  const CAMPOS_EDITABLES = ['punto_id','categoria','tipo','color','talla','tiene_nombre','nombre_bordado','descripcion','lugar_encontrado','fecha_encontrado','foto_url'];
+
+  function formatValorCampo(campo, valor) {
+    if (campo === 'punto_id') return puntoName(valor) || 'Sin punto específico';
+    if (campo === 'tiene_nombre') return valor ? 'Sí' : 'No';
+    if (campo === 'fecha_encontrado') return formatDate(valor);
+    if (valor === null || valor === undefined || valor === '') return '—';
+    return String(valor);
+  }
+
+  function calcularCambios(original, nuevo) {
+    const cambios = [];
+    CAMPOS_EDITABLES.forEach(campo => {
+      const antes = original ? original[campo] : undefined;
+      const despues = nuevo[campo];
+      const a = antes === undefined ? null : antes;
+      const d = despues === undefined ? null : despues;
+      if (a === d) return;
+      if (campo === 'foto_url') {
+        let texto;
+        if (!a && d) texto = 'Se agregó una foto';
+        else if (a && !d) texto = 'Se quitó la foto';
+        else texto = 'Se reemplazó la foto';
+        cambios.push({ etiqueta: 'Foto', soloTexto: true, despues: texto });
+        return;
+      }
+      cambios.push({
+        etiqueta: CAMPOS_LABELS[campo] || campo,
+        antes: formatValorCampo(campo, a),
+        despues: formatValorCampo(campo, d)
+      });
+    });
+    return cambios;
+  }
+
+  async function registrarHistorial(articuloId, tipoEvento, cambios) {
+    try {
+      await sb.from('articulos_historial').insert({
+        articulo_id: articuloId,
+        tipo_evento: tipoEvento,
+        usuario_nombre: miPerfil.nombre || miPerfil.email,
+        cambios: cambios && cambios.length ? cambios : null
+      });
+    } catch (e) {
+      console.error('No se pudo registrar el historial:', e);
+    }
+  }
+
+  const ETIQUETAS_EVENTO = { creado: 'Registrado', editado: 'Editado', retirado: 'Marcado como retirado' };
+
+  async function toggleHistorial(articuloId) {
+    const box = $('#historialBox');
+    const btn = $('#btnVerHistorial');
+    if (box.style.display === 'block') {
+      box.style.display = 'none';
+      btn.textContent = '🕘 Ver historial de cambios';
+      return;
+    }
+    btn.textContent = 'Cargando...';
+    const { data, error } = await sb
+      .from('articulos_historial')
+      .select('*')
+      .eq('articulo_id', articuloId)
+      .order('created_at', { ascending: false });
+    btn.textContent = '🕘 Ocultar historial de cambios';
+    if (error) {
+      box.innerHTML = `<p style="font-size:12.5px;color:var(--warn);">No se pudo cargar el historial: ${escapeHtml(error.message)}</p>`;
+      box.style.display = 'block';
+      return;
+    }
+    if (!data || !data.length) {
+      box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);">Sin historial registrado todavía.</p>';
+      box.style.display = 'block';
+      return;
+    }
+    box.innerHTML = data.map(h => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;">
+        <div><strong>${escapeHtml(ETIQUETAS_EVENTO[h.tipo_evento] || h.tipo_evento)}</strong> por ${escapeHtml(h.usuario_nombre || '—')} · <span class="mono">${formatDate((h.created_at || '').slice(0,10))}</span></div>
+        ${h.cambios && h.cambios.length ? `
+          <ul style="margin:6px 0 0;padding-left:16px;color:var(--ink-soft);">
+            ${h.cambios.map(c => `<li>${c.soloTexto ? escapeHtml(c.despues) : `${escapeHtml(c.etiqueta)}: ${escapeHtml(c.antes)} → ${escapeHtml(c.despues)}`}</li>`).join('')}
+          </ul>
+        ` : ''}
+      </div>
+    `).join('');
+    box.style.display = 'block';
   }
 
   async function loadPuntosGlobal() {
@@ -1370,17 +1473,22 @@
       if (editando) {
         record.modificado_por = miPerfil.nombre || miPerfil.email;
         record.modificado_en = new Date().toISOString();
+        const cambios = calcularCambios(itemOriginal, record);
         const { data, error } = await sb.from('articulos').update(record).eq('id', editingItemId).select();
         if (error) throw error;
         if (!data || data.length === 0) {
           throw new Error('No se guardó nada. Probablemente no tienes permiso para editar este punto (revisa "Puntos permitidos" con el administrador total).');
         }
+        await registrarHistorial(editingItemId, 'editado', cambios);
         toast('Artículo actualizado');
       } else {
         record.registrado_por = miPerfil.nombre || miPerfil.email;
         record.estado = 'disponible';
-        const { error } = await sb.from('articulos').insert(record);
+        const { data, error } = await sb.from('articulos').insert(record).select();
         if (error) throw error;
+        if (data && data[0]) {
+          await registrarHistorial(data[0].id, 'creado', null);
+        }
         toast('Artículo registrado');
       }
 
@@ -1426,6 +1534,8 @@
         <div><span>Registrado por</span>${escapeHtml(item.registrado_por || '—')}</div>
         ${item.modificado_por ? `<div><span>Última modificación</span>${escapeHtml(item.modificado_por)} · ${formatDate((item.modificado_en || '').slice(0,10))}</div>` : ''}
       </div>
+      <button class="link-btn" id="btnVerHistorial" style="padding:4px 0;">🕘 Ver historial de cambios</button>
+      <div id="historialBox" style="display:none;margin-top:4px;margin-bottom:10px;"></div>
       ${item.descripcion ? `<div class="field"><label>Detalles</label><div style="font-size:13.5px;">${escapeHtml(item.descripcion)}</div></div>` : ''}
       <hr class="divider">
       ${disponible && puedeGestionar ? `
@@ -1472,6 +1582,7 @@
     if (puedeGestionar) {
       $('#btnEliminarArticulo').addEventListener('click', () => eliminarArticulo(item.id));
     }
+    $('#btnVerHistorial').addEventListener('click', () => toggleHistorial(item.id));
     showOverlay('#overlayDetail');
   }
 
@@ -1522,6 +1633,11 @@
         })
         .eq('id', id);
       if (error) throw error;
+      await registrarHistorial(id, 'retirado', [
+        { etiqueta: 'Retirado por', antes: '—', despues: nombre },
+        { etiqueta: 'Curso', antes: '—', despues: curso || '—' },
+        { etiqueta: 'Fecha de retiro', antes: '—', despues: formatDate(fecha) }
+      ]);
       toast('Retiro registrado');
       hideOverlay('#overlayDetail');
       loadItems();

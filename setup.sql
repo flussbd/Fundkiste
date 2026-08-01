@@ -325,6 +325,60 @@ create policy "articulos_delete"
   );
 
 -- ---------------------------------------------------------
+-- 4b. Historial de cambios por artículo
+-- ---------------------------------------------------------
+-- Registro inmutable (nadie puede editarlo ni borrarlo, ni siquiera
+-- admin_total) de cada evento relevante de un artículo: cuándo se creó,
+-- se editó o se marcó su retiro, quién lo hizo, y qué campos cambiaron.
+create table if not exists articulos_historial (
+  id uuid primary key default gen_random_uuid(),
+  articulo_id uuid not null references articulos(id) on delete cascade,
+  tipo_evento text not null check (tipo_evento in ('creado','editado','retirado')),
+  usuario_nombre text,
+  cambios jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_historial_articulo on articulos_historial (articulo_id, created_at desc);
+
+alter table articulos_historial enable row level security;
+
+-- Solo se puede leer el historial de artículos que el usuario ya puede ver.
+drop policy if exists "historial_select" on articulos_historial;
+create policy "historial_select"
+  on articulos_historial for select
+  using (
+    exists (
+      select 1 from articulos a
+      where a.id = articulo_id
+        and (
+          get_my_role() = 'admin_total'
+          or a.sede_id = get_my_sede()
+          or (get_my_role() = 'viewer' and get_my_sede() is null)
+        )
+    )
+  );
+
+-- Solo se puede agregar una entrada de historial si el usuario tiene
+-- permiso para modificar ese artículo (mismas reglas que articulos_update).
+drop policy if exists "historial_insert" on articulos_historial;
+create policy "historial_insert"
+  on articulos_historial for insert
+  with check (
+    exists (
+      select 1 from articulos a
+      where a.id = articulo_id
+        and (
+          get_my_role() = 'admin_total'
+          or (get_my_role() = 'admin_local' and a.sede_id = get_my_sede() and punto_permitido(a.punto_id))
+        )
+    )
+  );
+
+-- Intencionalmente no hay políticas de update ni delete: el historial
+-- es de solo lectura una vez escrito, incluso para admin_total.
+
+-- ---------------------------------------------------------
 -- 5. Storage: bucket de fotos
 -- ---------------------------------------------------------
 insert into storage.buckets (id, name, public)
